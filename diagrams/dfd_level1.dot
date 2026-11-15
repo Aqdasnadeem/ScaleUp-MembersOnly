@@ -1,0 +1,58 @@
+// P2-18 DFD Level 1. Processes 1.0 to 6.0 (circles), data stores D1 to D7 (open rectangles), external entities (boxes).
+// Stores marked "planned" are built in M4 to M6; the others exist in migrations 001 to 003.
+digraph L1 {
+  rankdir=TB; nodesep=0.5; ranksep=1.1; newrank=true; fontname="Helvetica"; pad=0.3; bgcolor="white"; splines=true;
+  node [fontname="Helvetica", fontsize=12]; edge [fontname="Helvetica", fontsize=10, color="#334155", arrowsize=0.7];
+  user   [shape=box, style=filled, fillcolor="#e0f2fe", color="#0369a1", label="Business user", width=1.5, height=0.7];
+  gemini [shape=box, style=filled, fillcolor="#fee2e2", color="#b91c1c", label="Gemini API", width=1.5, height=0.7];
+  node [shape=circle, style=filled, fillcolor="#f8fafc", color="#334155", width=1.55, fixedsize=true];
+  p1 [label="1.0\nAccount and\nlogin"];
+  p2 [label="2.0\nReceive\nupload"];
+  p3 [label="3.0\nValidate, clean\nand load\n(worker)"];
+  p4 [label="4.0\nAnalytics and\nanomalies"];
+  p5 [label="5.0\nFeedback\nNLP"];
+  p6 [label="6.0\nAgent: answer\nquestions"];
+  node [shape=none, style="", fixedsize=false, width=0, margin=0];
+  d1 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D1</td><td sides="TB" border="1" align="left">businesses, users</td></tr></table>>];
+  d2 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D2</td><td sides="TB" border="1" align="left">ingestion_jobs,<br/>column_mappings</td></tr></table>>];
+  d3 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D3</td><td sides="TB" border="1" align="left">uploaded CSV files<br/>(file storage)</td></tr></table>>];
+  d4 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D4</td><td sides="TB" border="1" align="left">sales, inventory, expenses,<br/>products, customers</td></tr></table>>];
+  d5 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D5</td><td sides="TB" border="1" align="left">feedback and embeddings<br/>(embeddings: planned M5)</td></tr></table>>];
+  d6 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D6</td><td sides="TB" border="1" align="left">summary tables, anomalies<br/>(planned M4)</td></tr></table>>];
+  d7 [label=<<table border="0" cellborder="0" cellspacing="0" cellpadding="5"><tr><td sides="LTB" border="1">D7</td><td sides="TB" border="1" align="left">question history<br/>(planned M6)</td></tr></table>>];
+
+  // flows with the outside world (same F-numbers as Level 0)
+  user -> p1 [label="F1  sign-up details,\nlogin credentials"];
+  p1 -> user [label="F5  login token,\naccount confirmation"];
+  user -> p2 [label="F2  CSV file, upload type, column mapping,\nas-of date, skip / replace choice"];
+  p2 -> user [label="F6  job status, import result,\nbad-row report"];
+  user -> p4 [label="F4  view requests\n(dashboard, anomalies)"];
+  p4 -> user [label="F7  dashboards, KPIs,\nalerts, anomalies + evidence"];
+  user -> p6 [label="F3  business question"];
+  p6 -> user [label="F8  answer with evidence,\nquestion history"];
+  p6 -> gemini [label="F9  prompt and tool results"];
+  gemini -> p6 [label="F10  tool-call requests,\nanswer text"];
+
+  // internal flows
+  p1 -> d1 [label="new business and user\n(password hash)"];
+  d1 -> p1 [label="user record"];
+  p2 -> d3 [label="original CSV"];
+  p2 -> d2 [label="new job (pending),\nsaved mapping"];
+  d2 -> p2 [label="saved mapping,\nfile hash (same content?)"];
+  d2 -> p3 [label="next pending job"];
+  d3 -> p3 [label="CSV file"];
+  p3 -> d4 [label="validated, cleaned rows"];
+  p3 -> d5 [label="feedback rows"];
+  p3 -> d2 [label="status, row counts,\nbad-row report"];
+  d4 -> p4 [label="sales, stock, expense rows"];
+  p4 -> d6 [label="summaries, anomaly flags"];
+  d6 -> p4 [label="summaries"];
+  d5 -> p5 [label="feedback text"];
+  p5 -> d5 [label="sentiment, topic, embedding"];
+  d4 -> p6 [label="rows via typed tools"];
+  d6 -> p6 [label="summaries, anomalies"];
+  d5 -> p6 [label="retrieved feedback"];
+  p6 -> d7 [label="question, answer, evidence"];
+  d7 -> p6 [label="previous questions"];
+  {rank=same; user; gemini}
+}

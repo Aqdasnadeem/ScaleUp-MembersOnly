@@ -1,0 +1,24 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 15 items
+
+tests/test_validation.py::test_wrong_column_name_is_named PASSED         [  6%]
+tests/test_validation.py::test_missing_required_field_is_named PASSED    [ 13%]
+tests/test_validation.py::test_inventory_needs_date_or_snapshot PASSED   [ 20%]
+tests/test_validation.py::test_bad_rows_listed_good_rows_kept PASSED     [ 26%]
+tests/test_validation.py::test_one_bad_row_is_one_entry_even_with_two_problems PASSED [ 33%]
+tests/test_validation.py::test_row_with_wrong_number_of_cells PASSED     [ 40%]
+tests/test_validation.py::test_json_report_shape PASSED                  [ 46%]
+tests/test_validation.py::test_total_only_file_derives_price_and_checks_negative PASSED [ 53%]
+tests/test_validation.py::test_inventory_uses_snapshot_date PASSED       [ 60%]
+tests/test_validation.py::test_expense_and_feedback_rules PASSED         [ 66%]
+tests/test_validation.py::test_name_is_key_only_when_no_code_column PASSED [ 73%]
+tests/test_validation.py::test_20_percent_rule_numbers[19-100-True] PASSED [ 80%]
+tests/test_validation.py::test_20_percent_rule_numbers[20-100-True] PASSED [ 86%]
+tests/test_validation.py::test_20_percent_rule_numbers[21-100-False] PASSED [ 93%]
+tests/test_validation.py::test_sample_bad_file_report_matches_saved_json PASSED [100%]
+
+============================== 15 passed in 0.35s ==============================

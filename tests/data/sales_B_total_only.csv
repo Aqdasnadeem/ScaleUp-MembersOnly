@@ -1,0 +1,6 @@
+Transaction,Sale Date,Item Name,Units,Total,Cust ID
+T1,11/01/2026,Laptop Bag,2,"4,000",K9
+T2,11/02/2026,Laptop Bag ,1,2000,
+T2,11/02/2026,Mouse,3,900,
+T3,11/03/2026,mouse,1,300,K10
+T4,11/03/2026,Keyboard,1,1500,K9

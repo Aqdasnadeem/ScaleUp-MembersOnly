@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 14 items
+
+tests/test_loader.py::test_10000_rows_under_30_seconds_and_no_duplicates_on_reupload PASSED [  7%]
+tests/test_loader.py::test_repeated_lines_merge_with_weighted_average_and_exact_revenue PASSED [ 14%]
+tests/test_loader.py::test_reupload_of_merged_file_does_not_double_quantities PASSED [ 21%]
+tests/test_loader.py::test_more_than_20_percent_bad_saves_nothing PASSED [ 28%]
+tests/test_loader.py::test_exactly_20_percent_loads PASSED               [ 35%]
+tests/test_loader.py::test_structural_errors_fail_at_once PASSED         [ 42%]
+tests/test_loader.py::test_failure_in_the_middle_leaves_no_partial_data PASSED [ 50%]
+tests/test_loader.py::test_retry_after_failure_adds_each_row_once PASSED [ 57%]
+tests/test_loader.py::test_replace_removes_only_the_old_upload PASSED    [ 64%]
+tests/test_loader.py::test_replace_refuses_another_business PASSED       [ 71%]
+tests/test_loader.py::test_expenses_identical_rows_both_kept_and_reupload_adds_nothing PASSED [ 78%]
+tests/test_loader.py::test_inventory_history_and_snapshot_date PASSED    [ 85%]
+tests/test_loader.py::test_cost_price_is_fill_only PASSED                [ 92%]
+tests/test_loader.py::test_feedback_links_known_product_only PASSED      [100%]
+
+============================== 14 passed in 1.91s ==============================

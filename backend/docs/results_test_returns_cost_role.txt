@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 12 items
+
+tests/test_returns_cost_role.py::test_returns_are_counted_apart_not_loaded_and_not_bad_rows PASSED [  8%]
+tests/test_returns_cost_role.py::test_a_file_with_many_returns_does_not_fail_the_20_percent_rule PASSED [ 16%]
+tests/test_returns_cost_role.py::test_the_20_percent_rule_still_applies_to_the_other_rows PASSED [ 25%]
+tests/test_returns_cost_role.py::test_zero_quantity_is_still_a_bad_row PASSED [ 33%]
+tests/test_returns_cost_role.py::test_a_file_of_only_returns_loads_nothing_and_does_not_crash PASSED [ 41%]
+tests/test_returns_cost_role.py::test_a_different_cost_keeps_the_saved_one_and_warns PASSED [ 50%]
+tests/test_returns_cost_role.py::test_no_warning_when_the_cost_is_the_same_or_new PASSED [ 58%]
+tests/test_returns_cost_role.py::test_the_job_remembers_where_its_file_is_kept PASSED [ 66%]
+tests/test_returns_cost_role.py::test_users_table_has_no_role_column PASSED [ 75%]
+tests/test_returns_cost_role.py::test_bad_rows_are_saved_in_rejected_rows_and_match_the_report PASSED [ 83%]
+tests/test_returns_cost_role.py::test_a_failed_file_also_keeps_its_bad_rows_and_a_good_file_has_none PASSED [ 91%]
+tests/test_returns_cost_role.py::test_running_the_same_job_again_does_not_double_the_rejected_rows PASSED [100%]
+
+============================== 12 passed in 0.75s ==============================

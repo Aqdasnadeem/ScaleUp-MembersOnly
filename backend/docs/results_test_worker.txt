@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 10 items
+
+tests/test_worker.py::test_takes_oldest_pending_job_first_and_marks_it_processing PASSED [ 10%]
+tests/test_worker.py::test_worker_runs_a_job_end_to_end_and_marks_it_done PASSED [ 20%]
+tests/test_worker.py::test_bad_csv_fails_at_once_without_retries PASSED  [ 30%]
+tests/test_worker.py::test_temporary_failure_is_retried_and_rows_are_not_duplicated PASSED [ 40%]
+tests/test_worker.py::test_gives_up_after_3_temporary_failures_and_leaves_no_rows PASSED [ 50%]
+tests/test_worker.py::test_job_stuck_in_processing_is_put_back_only_after_the_limit PASSED [ 60%]
+tests/test_worker.py::test_a_worker_that_looks_for_work_also_rescues_a_crashed_job PASSED [ 70%]
+tests/test_worker.py::test_two_workers_cannot_take_the_same_job PASSED   [ 80%]
+tests/test_worker.py::test_after_a_take_the_same_job_is_not_offered_again PASSED [ 90%]
+tests/test_worker.py::test_get_upload_shows_loaded_skipped_and_rejected PASSED [100%]
+
+============================== 10 passed in 1.02s ==============================

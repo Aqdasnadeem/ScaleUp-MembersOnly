@@ -1,0 +1,25 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 10 items
+
+tests/test_auth.py::test_signup_creates_one_business_and_one_user_and_returns_a_token PASSED [ 10%]
+tests/test_auth.py::test_duplicate_email_is_rejected_and_creates_no_second_business PASSED [ 20%]
+tests/test_auth.py::test_password_is_stored_only_as_salted_hash PASSED   [ 30%]
+tests/test_auth.py::test_login_returns_a_token_with_business_id PASSED   [ 40%]
+tests/test_auth.py::test_wrong_password_is_401_and_gives_nothing_away PASSED [ 50%]
+tests/test_auth.py::test_signup_validation_messages PASSED               [ 60%]
+tests/test_auth.py::test_no_token_bad_token_expired_token_all_401 PASSED [ 70%]
+tests/test_auth.py::test_user_never_sees_another_business_rows PASSED    [ 80%]
+tests/test_auth.py::test_seed_placeholder_hash_can_never_log_in PASSED   [ 90%]
+tests/test_auth.py::test_token_lifetime_is_60_minutes_or_less PASSED     [100%]
+
+=============================== warnings summary ===============================
+tests/test_auth.py::test_no_token_bad_token_expired_token_all_401
+  /usr/local/lib/python3.13/dist-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 14 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 10 passed, 1 warning in 1.47s =========================

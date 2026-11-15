@@ -1,0 +1,12 @@
+Order No,Date,SKU,Item,Qty,Unit Price,Customer,Cost Price
+C-1,02/10/2026,A1,Pen,2,10,C1,Rs 6
+C-2,02/10/2026,B1,Book,1,50,C1,
+C-3,02/10/2026,D1,Bag,1,90,C1,-4
+F-0,02/10/2026,Z0,Thing,1,10,C1,
+F-1,02/10/2026,Z1,Thing,1,10,C1,
+F-2,02/10/2026,Z2,Thing,1,10,C1,
+F-3,02/10/2026,Z3,Thing,1,10,C1,
+F-4,02/10/2026,Z4,Thing,1,10,C1,
+F-5,02/10/2026,Z5,Thing,1,10,C1,
+F-6,02/10/2026,Z6,Thing,1,10,C1,
+F-7,02/10/2026,Z7,Thing,1,10,C1,

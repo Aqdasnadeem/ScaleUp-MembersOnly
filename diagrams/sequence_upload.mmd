@@ -1,0 +1,61 @@
+%% P2-21 Sequence diagram: CSV upload -> validate -> clean -> load. Shows only what is demonstrated on 7 Nov (sales CSV).
+%% Names of messages are the real endpoints / functions of backend/app (routes_uploads.py, pipeline.py, loader.py).
+sequenceDiagram
+    autonumber
+    actor U as Business user
+    participant FE as Next.js app
+    participant API as FastAPI (routes_uploads)
+    participant DB as PostgreSQL
+    participant FS as File storage
+    participant W as Background worker (pipeline)
+
+    U->>FE: choose type "sales" and a CSV file
+    FE->>API: POST /uploads/preview (file, upload_type) + JWT
+    API->>API: business_id = current_business_id(JWT)
+    API->>DB: SELECT mapping FROM column_mappings WHERE business_id, upload_type
+    DB-->>API: saved mapping (or none)
+    API-->>FE: 200 {columns, suggested_mapping}
+    FE-->>U: mapping screen
+    U->>FE: confirm mapping, press Upload
+    FE->>API: POST /uploads (file, upload_type, mapping) + JWT
+    alt wrong type (not .csv) or file over 50 MB
+        API-->>FE: 415 / 413 {detail}
+        FE-->>U: clear message, no job created
+    else mapping does not match the file
+        API-->>FE: 422 {problems[]}
+        FE-->>U: shows which column or field is wrong
+    else same file content already uploaded
+        API->>DB: SELECT job WHERE business_id AND file_hash
+        DB-->>API: earlier job
+        API-->>FE: 409 {warning, choose: skip | replace}
+        FE-->>U: warning and user chooses skip (replace is planned, OI-9)
+    else new file
+        API->>FS: save UPLOAD_DIR/job_id.csv
+        API->>DB: INSERT ingestion_jobs (status=pending) and UPSERT column_mappings
+        DB-->>API: job_id
+        API-->>FE: 202 {job_id, status: pending}
+        FE-->>U: "Processing..." with job_id
+    end
+
+    Note over W,DB: worker loop (P2-51): take the next pending job
+    W->>DB: take_next_job()  (status = processing)
+    DB-->>W: job (file path, mapping, upload_type)
+    W->>FS: read_csv(UPLOAD_DIR/job_id.csv)
+    FS-->>W: header + rows
+    W->>W: check_mapping() and validate_rows() and clean (C1 to C9)
+    alt more than 20% bad rows, or missing header
+        W->>DB: UPDATE ingestion_jobs SET status=failed, message, error_report
+        Note right of W: nothing is loaded (no partial data)
+    else up to 20% bad rows
+        W->>W: transform(): merge repeated order lines in memory
+        W->>DB: BEGIN and bulk_load(): COPY to staging and INSERT ... ON CONFLICT DO NOTHING
+        W->>DB: UPDATE ingestion_jobs SET status=completed, loaded_rows, skipped_rows, error_report and COMMIT
+    end
+
+    loop until status is completed or failed
+        FE->>API: GET /uploads/{job_id} + JWT
+        API->>DB: SELECT job WHERE job_id AND business_id
+        DB-->>API: status, counts, error_report
+        API-->>FE: 200 {status, loaded_rows, error_report}
+    end
+    FE-->>U: result: loaded rows and the bad-row report

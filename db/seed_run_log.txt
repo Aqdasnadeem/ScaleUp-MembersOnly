@@ -1,0 +1,14 @@
+# Historical log of a single-business demo load (Linux, PostgreSQL 16).
+# backend/scripts/load_demo_data.py now appends timestamped results for both
+# Demo Traders and Corner Store here; it does not log passwords or tokens.
+$ py scripts\load_demo_data.py
+created account demo@scaleup.test
+sales      completed                loaded 1825  rejected 0    
+inventory  completed                loaded 560   rejected 0    
+expenses   completed                loaded 33    rejected 0    
+feedback   completed                loaded 120   rejected 0    
+$ psql -c "select (select count(*) from sales) ..."
+ sales | products | inventory | expenses | feedback | customers 
+-------+----------+-----------+----------+----------+-----------
+  1825 |       40 |       560 |       33 |      120 |        60
+(1 row)

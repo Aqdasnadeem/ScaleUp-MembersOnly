@@ -1,0 +1,17 @@
+[
+  {
+    "row": 5,
+    "column": "Date",
+    "reason": "not a real date"
+  },
+  {
+    "row": 6,
+    "column": "Qty",
+    "reason": "must not be 0 (a return is a negative quantity)"
+  },
+  {
+    "row": 7,
+    "column": "Unit Price",
+    "reason": "ambiguous comma (use 1200.50 or 1,200.50)"
+  }
+]

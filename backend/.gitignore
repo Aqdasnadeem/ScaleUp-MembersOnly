@@ -1,0 +1,12 @@
+# secrets and local settings: never commit (NFR-SEC-03)
+.env
+.env.*
+!.env.example
+# uploaded customer files (EI-07 keeps them on disk, not in git)
+uploads/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

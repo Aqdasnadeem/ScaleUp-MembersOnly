@@ -1,0 +1,76 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="suNavyBg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#1E2B47" />
+      <stop offset="50%" stopColor="#131A2B" />
+      <stop offset="100%" stopColor="#0B101D" />
+    </linearGradient>
+
+    <linearGradient id="suGoldPrimary" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFF4D0" />
+      <stop offset="30%" stopColor="#E2C782" />
+      <stop offset="65%" stopColor="#C6A75E" />
+      <stop offset="100%" stopColor="#8E6F27" />
+    </linearGradient>
+
+    <linearGradient id="suGoldBright" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="35%" stopColor="#F9EDB8" />
+      <stop offset="100%" stopColor="#C6A75E" />
+    </linearGradient>
+
+    <linearGradient id="suGoldDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#B89445" />
+      <stop offset="100%" stopColor="#785B1C" />
+    </linearGradient>
+
+    <linearGradient id="suGoldBorder" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#F5E4B5" stopOpacity="0.9" />
+      <stop offset="50%" stopColor="#C6A75E" stopOpacity="0.4" />
+      <stop offset="100%" stopColor="#96772E" stopOpacity="0.8" />
+    </linearGradient>
+
+    <radialGradient id="suAura" cx="50" cy="50" r="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#C6A75E" stopOpacity="0.32" />
+      <stop offset="55%" stopColor="#C6A75E" stopOpacity="0.08" />
+      <stop offset="100%" stopColor="#C6A75E" stopOpacity="0" />
+    </radialGradient>
+
+    <radialGradient id="suSparkGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="35%" stopColor="#FFEAA7" />
+      <stop offset="100%" stopColor="#C6A75E" stopOpacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect x="5" y="5" width="90" height="90" rx="24" fill="url(#suNavyBg)" stroke="url(#suGoldBorder)" strokeWidth="2.2" />
+  <circle cx="50" cy="50" r="42" fill="url(#suAura)" />
+
+  <line x1="20" y1="74" x2="80" y2="74" stroke="#C6A75E" strokeOpacity="0.25" strokeWidth="1.2" strokeDasharray="2 2" />
+  <line x1="20" y1="56" x2="80" y2="56" stroke="#C6A75E" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="2 2" />
+  <line x1="20" y1="38" x2="80" y2="38" stroke="#C6A75E" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="2 2" />
+
+  <g>
+    <path d="M 22 74 L 33 74 C 35 74 36.5 72.5 36.5 70.5 L 36.5 56 C 36.5 54 35 52.5 33 52.5 L 22 52.5 C 20 52.5 18.5 54 18.5 56 L 18.5 70.5 C 18.5 72.5 20 74 22 74 Z" fill="url(#suGoldDark)" opacity="0.9" />
+    <path d="M 22 52.5 L 33 52.5 C 35 52.5 36.5 54 36.5 56 L 36.5 57.5 L 18.5 57.5 L 18.5 56 C 18.5 54 20 52.5 22 52.5 Z" fill="url(#suGoldBright)" opacity="0.75" />
+  </g>
+
+  <g>
+    <path d="M 40.5 74 L 51.5 74 C 53.5 74 55 72.5 55 70.5 L 55 42 C 55 40 53.5 38.5 51.5 38.5 L 40.5 38.5 C 38.5 38.5 37 40 37 42 L 37 70.5 C 37 72.5 38.5 74 40.5 74 Z" fill="url(#suGoldPrimary)" />
+    <path d="M 40.5 38.5 L 51.5 38.5 C 53.5 38.5 55 40 55 42 L 55 43.5 L 37 43.5 L 37 42 C 37 40 38.5 38.5 40.5 38.5 Z" fill="url(#suGoldBright)" opacity="0.85" />
+  </g>
+
+  <g>
+    <path d="M 59 74 L 70 74 C 72 74 73.5 72.5 73.5 70.5 L 73.5 28 C 73.5 26 72 24.5 70 24.5 L 59 24.5 C 57 24.5 55.5 26 55.5 28 L 55.5 70.5 C 55.5 72.5 57 74 59 74 Z" fill="url(#suGoldBright)" />
+    <path d="M 59 24.5 L 70 24.5 C 72 24.5 73.5 26 73.5 28 L 73.5 29.5 L 55.5 29.5 L 55.5 28 C 55.5 26 57 24.5 59 24.5 Z" fill="#FFFFFF" opacity="0.9" />
+  </g>
+
+  <path d="M 19 67 C 27 64, 38 60, 47 48 C 55 38, 64 28, 80 19" stroke="url(#suGoldPrimary)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+  <path d="M 69 19 L 80 19 L 80 30" stroke="url(#suGoldBright)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+
+  <g transform="translate(80, 19)">
+    <circle cx="0" cy="0" r="5" fill="url(#suSparkGlow)" />
+    <path d="M 0 -8.5 Q 0 -1.5 7 0 Q 0 1.5 0 8.5 Q 0 1.5 -7 0 Q 0 -1.5 0 -8.5 Z" fill="#FFFFFF" />
+    <circle cx="0" cy="0" r="1.5" fill="#FAF6EF" />
+  </g>
+</svg>

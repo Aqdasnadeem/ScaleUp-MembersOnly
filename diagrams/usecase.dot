@@ -1,0 +1,62 @@
+// P2-17 Use case diagram. Source of truth: SRS section 7 (use cases UC-01 to UC-14). Render: dot -Tpng usecase.dot -o ScaleUp_UseCase.png
+digraph UC {
+  rankdir=LR; splines=true; nodesep=0.35; ranksep=1.1; fontname="Helvetica"; bgcolor="white"; pad=0.3;
+  node [fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=9, color="#334155", arrowsize=0.7];
+
+  user [shape=none, image="actor.png", label="", width=0.6, height=0.9, fixedsize=true, imagescale=true, xlabel="Business user\n(only human role)", fontsize=11];
+  worker [shape=box, style="rounded,filled", fillcolor="#e0f2fe", color="#0369a1", label="«system»\nBackground worker"];
+  sched  [shape=box, style="rounded,filled", fillcolor="#fef9c3", color="#a16207", label="«time»\nScheduler"];
+  gemini [shape=box, style="rounded,filled", fillcolor="#fee2e2", color="#b91c1c", label="«external»\nGemini API"];
+
+  subgraph cluster_sys {
+    label="Scale Up (FYP-1 scope)"; labeljust=l; fontsize=14; style="rounded"; color="#475569"; margin=18;
+    node [shape=ellipse, style=filled, fillcolor="#f8fafc", color="#334155", width=2.6];
+    uc01 [label="UC-01  Sign up and log in\nFR-AUTH-01 to 04"];
+    uc02 [label="UC-02  Upload a data file\nFR-UP-01 to 04, FR-UP-07"];
+    uc03 [label="UC-03  Map file columns\nFR-UP-05, FR-UP-06"];
+    uc04 [label="UC-04  Validate, clean and load a file\nFR-ETL-01 to 07"];
+    uc05 [label="UC-05  Resolve a repeated file\n(skip or replace)\nFR-UP-08, FR-ETL-08"];
+    uc06 [label="UC-06  View import result and bad rows\nFR-UP-09"];
+    uc07 [label="UC-07  View sales, inventory and\nexpense dashboards\nFR-DASH-01 to 07"];
+    uc08 [label="UC-08  Detect anomalies\nFR-ANOM-01, 02"];
+    uc09 [label="UC-09  Review anomalies and evidence\nFR-ANOM-03"];
+    uc10 [label="UC-10  Analyse feedback\n(sentiment, topics, embeddings)\nFR-NLP-01 to 03"];
+    uc11 [label="UC-11  Search feedback by meaning\nFR-NLP-04"];
+    uc12 [label="UC-12  Ask the agent a question\nFR-AGENT-01 to 06"];
+    uc13 [label="UC-13  Call Gemini with tools\nFR-AGENT-02, 03"];
+    uc14 [label="UC-14  View question history\nFR-AGENT-05"];
+  }
+
+  // associations (actor <-> use case)
+  edge [arrowhead=none];
+  {rank=source; user}
+  {rank=sink; worker; sched; gemini}
+  user -> {uc01 uc02 uc05 uc06 uc07 uc09 uc11 uc12 uc14};
+  user -> uc03 [constraint=false];
+  {uc04 uc10} -> worker;
+  uc08 -> sched;
+  uc13 -> gemini;
+
+  // include / extend (dashed, arrow points to the use case that is included / extended)
+  edge [style=dashed, arrowhead=vee, color="#475569", fontcolor="#475569"];
+  uc02 -> uc03 [label="«include»"];
+  uc02 -> uc04 [label="«include»"];
+  uc05 -> uc04 [label="«extend»"];
+  uc11 -> uc10 [label="«include»"];
+  uc12 -> uc13 [label="«include»"];
+
+  // legend
+  legend [shape=none, margin=0, label=<
+    <table border="1" cellborder="0" cellspacing="0" cellpadding="4" color="#94a3b8">
+      <tr><td colspan="2" align="left"><b>Legend</b></td></tr>
+      <tr><td align="left">Solid line</td><td align="left">actor takes part in the use case</td></tr>
+      <tr><td align="left">Dashed «include»</td><td align="left">base use case always uses the other one</td></tr>
+      <tr><td align="left">Dashed «extend»</td><td align="left">optional behaviour added to the other use case</td></tr>
+      <tr><td align="left">«system»</td><td align="left">non-human actor inside our system (worker)</td></tr>
+      <tr><td align="left">«time»</td><td align="left">non-human actor: a schedule starts the use case</td></tr>
+      <tr><td align="left">«external»</td><td align="left">non-human actor outside our system (Gemini API)</td></tr>
+      <tr><td align="left">No Admin actor</td><td align="left">FYP-1 has one role; Admin is future work (SRS 8.1)</td></tr>
+    </table>>];
+  uc14 -> legend [style=invis];
+}

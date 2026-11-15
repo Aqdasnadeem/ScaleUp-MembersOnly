@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.16, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/claude-0/-home-claude/107353c9-e693-55b1-9974-697c8eb2ea05/scratchpad/final_pkg/backend
+plugins: platformdirs-4.12.3, anyio-4.15.1
+collecting ... collected 17 items
+
+tests/test_api.py::test_post_returns_202_and_job_id_under_1_second_then_get_status PASSED [  5%]
+tests/test_api.py::test_get_shows_bad_rows_report PASSED                 [ 11%]
+tests/test_api.py::test_no_token_or_bad_token_is_401 PASSED              [ 17%]
+tests/test_api.py::test_other_business_cannot_see_the_job PASSED         [ 23%]
+tests/test_api.py::test_business_id_in_the_request_is_ignored PASSED     [ 29%]
+tests/test_api.py::test_wrong_type_and_oversize_create_no_job PASSED     [ 35%]
+tests/test_api.py::test_unusable_file_is_refused_with_a_message PASSED   [ 41%]
+tests/test_api.py::test_mapping_problems_are_listed_and_no_job_is_created PASSED [ 47%]
+tests/test_api.py::test_mapping_is_saved_and_reused PASSED               [ 52%]
+tests/test_api.py::test_preview_suggests_columns_and_creates_nothing PASSED [ 58%]
+tests/test_api.py::test_same_content_new_name_is_detected_then_skip PASSED [ 64%]
+tests/test_api.py::test_inventory_snapshot_date_is_stored PASSED         [ 70%]
+tests/test_api.py::test_original_file_is_kept PASSED                     [ 76%]
+tests/test_api.py::test_saved_mapping_that_does_not_fit_the_new_file_falls_back_to_the_suggestion PASSED [ 82%]
+tests/test_api.py::test_templates_are_offered_for_all_four_types_need_a_login_and_map_completely PASSED [ 88%]
+tests/test_api.py::test_history_lists_only_my_jobs_newest_first_without_the_error_report PASSED [ 94%]
+tests/test_api.py::test_sku_id_and_current_stock_headers_are_recognised PASSED [100%]
+
+============================== 17 passed in 1.97s ==============================

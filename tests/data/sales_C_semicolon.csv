@@ -1,0 +1,5 @@
+txn_id;sku;product;quantity;price;date
+Z1;S1;Tea;4;100;2026-11-01
+Z2;S1;Tea;1;100;2026-11-02
+Z3;S2;Sugar;2;150;2026-11-02
+Z3;S2;Sugar;1;160;2026-11-02

@@ -1,0 +1,69 @@
+Creating test database ...
+PASS  parsers    numbers: 18 accepted/rejected forms behave as specified
+PASS  parsers    whole numbers: 2.0 ok, 2.5 and 99999999999 rejected
+PASS  parsers    dates: 14 forms behave as specified (DD/MM business)
+LIMIT parsers    same date text reads differently per business format (ambiguity is real)  -> DD/MM gives 2026-02-11, MM/DD gives 2026-11-02: a wrong business setting silently shifts dates; only a mass of invalid dates (e.g. 25/12) is caught
+PASS  parsers    text cleaning: whitespace, control characters, length
+PASS  mapping    auto-suggest maps the three sales layouts and the other file types
+PASS  mapping    saved mapping: upsert per business and file type, isolated between businesses
+PASS  sales      layout A: Rs/spaces/case cleaned, repeated line merged, 3 bad rows reported at exact row numbers (20% = loads)
+PASS  sales      layout B: no SKU, total only, MM/DD dates: key from cleaned name, unit_price derived
+PASS  sales      layout C: semicolon delimiter, ISO dates, repeated lines with different price -> weighted average, revenue preserved
+PASS  sales      Excel-style file: BOM + CRLF + quoted comma and line break inside a product name
+PASS  sales      latin-1 encoded file (Windows Excel save): loads with an encoding warning
+PASS  sales      whole file rejected, nothing saved: Excel file renamed .csv
+PASS  sales      whole file rejected, nothing saved: empty file (0 bytes)
+PASS  sales      whole file rejected, nothing saved: whitespace-only file
+PASS  sales      whole file rejected, nothing saved: header only
+PASS  sales      whole file rejected, nothing saved: duplicate column names
+PASS  sales      whole file rejected, nothing saved: quantity column missing
+PASS  sales      whole file rejected, nothing saved: price and total both missing
+PASS  sales      whole file rejected, nothing saved: PDF renamed .csv
+PASS  sales      explicit mapping to a column that does not exist -> whole file rejected naming the column
+PASS  sales      ragged rows (too few / too many fields) are bad rows; header spacing, case and trailing delimiter tolerated
+PASS  sales      mixed nasty file: 12 different bad rows reported with file column + reason; injection text, emoji, NUL byte stored safely; 150 good rows load
+PASS  sales      bad-row limit: 19 of 100 rows bad -> completed_with_warnings
+PASS  sales      bad-row limit: 20 of 100 rows bad -> completed_with_warnings
+PASS  sales      bad-row limit: 21 of 100 rows bad -> failed
+PASS  sales      bad-row limit: 100 of 100 rows bad -> failed
+PASS  sales      returns (negative qty) rejected; repeated lines merged; conflicting date/customer in repeated lines rejected; revenue reconciles
+PASS  sales      same file twice: warning -> skip changes nothing -> replace keeps history and exact row count
+PASS  sales      replace with a BAD file leaves the old data untouched (transaction safety)
+PASS  sales      replace where the LOAD itself crashes half-way: old rows and old job status come back (rollback)
+PASS  sales      replace target of another business is refused
+LIMIT sales      edited file re-uploaded: saved rows skipped and reported; the edited price is NOT updated (by design)  -> (1, 10, Decimal('10.00'), '10 rows skipped: already saved earlier (duplicates are never overwritten)')
+PASS  sales      tenants: same order_id and same SKU in two businesses both saved; each sees only its own
+PASS  sales      walk-in customers stay NULL; customers table has distinct ids only
+PASS  sales      SKU column present but blank in some rows -> those rows rejected (name is never the key when a code column exists)
+PASS  sales      product name variants without code (" Blue  Pen ", "BLUE PEN") become one product
+PASS  sales      extra unmapped columns and different column order are ignored
+PASS  sales      concurrency: 6 parallel uploads of the same file -> exactly one job loads, rows not doubled, no crash
+PASS  sales      concurrency: 6 parallel DIFFERENT files with overlapping products -> all load, no deadlock
+PASS  performance 10,000-row sales file loads in under 30 s (NFR-PERF-02)
+PASS  performance 100,000-row file loads (chunking not implemented in this prototype: reported, not required)
+PASS  inventory  snapshot with date column loads; second date adds rows; same product+date again is skipped and reported
+PASS  inventory  no date column: snapshot date from the upload screen is used; missing both -> file rejected
+PASS  inventory  negative / fractional / text stock rejected; same product+date twice in one file rejected as bad row
+PASS  inventory  products are shared: SKU from sales and inventory become ONE product row
+PASS  inventory  name-only files: "Blue Pen" in sales and " blue pen " in inventory are the same product
+PASS  expenses   basic load: category cleaned (" Rent"/"RENT "), amounts with Rs/commas, zero amount allowed, blank note -> NULL
+PASS  expenses   three identical rows in one file are all kept (occurrence count in the hash)
+PASS  expenses   edit cases: appended identical row adds exactly 1; deleting an unrelated line adds 0; deleting one of three identical lines adds 0
+PASS  expenses   negative amount (refund) rejected; same file twice -> warning
+PASS  expenses   amount 1200,50 (decimal comma) is rejected instead of silently becoming 120050
+PASS  feedback   basic load with rating, review id and product link (known product linked, unknown product saved without link + message)
+PASS  feedback   ratings: 4.0 ok, blank ok, 6 / 0 / "five" / "5 stars" rejected
+PASS  feedback   empty / whitespace-only text and a 20,000-character review are rejected
+PASS  feedback   duplicates: same review_id skipped; no id + same date+text skipped; same text on another date kept
+PASS  feedback   same feedback file twice -> warning; Unicode emoji stored intact
+PASS  jobs       bad-row report is stored on the job (row, column, reason) and capped at 1,000 entries while counts stay exact
+PASS  jobs       successful job stores counts, status and message
+PASS  sales      cost_price column: saved on the product; fill-only (second file cannot overwrite, can fill a missing one); negative cost = bad row
+PASS  sales      file without a cost column loads exactly as before (cost_price stays NULL)
+PASS  inventory  cost_price can also come from the inventory file
+PASS  db         constraints reject bad data directly in SQL (10 checks)
+LIMIT db         KNOWN LIMIT: a sale of business B can point to a product of business A (FK does not check the business)  -> accepted by the database: the loader must prevent it (a composite FK would fix it)
+PASS  db         new columns: low_stock_threshold default 10 and >= 0; cost_price >= 0 or NULL; status replaced; error_report JSON; one mapping per business+type
+PASS  migrations fresh database: 001-003 run (10 tables), all down (0 tables), all up again (10 tables)
+
+66 tests: 63 PASS, 3 known-limit confirmed, 0 FAIL

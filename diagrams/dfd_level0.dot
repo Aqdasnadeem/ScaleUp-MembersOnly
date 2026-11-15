@@ -1,0 +1,18 @@
+// P2-18 DFD Level 0 (context diagram). Flows F1..F10 are repeated in Level 1 (see the balancing table in DFD_notes.md).
+digraph L0 {
+  rankdir=LR; nodesep=0.8; ranksep=2.2; fontname="Helvetica"; pad=0.3; bgcolor="white";
+  node [fontname="Helvetica", fontsize=12]; edge [fontname="Helvetica", fontsize=10, color="#334155", arrowsize=0.8];
+  user   [shape=box, style=filled, fillcolor="#e0f2fe", color="#0369a1", label="Business user", width=1.6, height=0.8];
+  gemini [shape=box, style=filled, fillcolor="#fee2e2", color="#b91c1c", label="Gemini API", width=1.6, height=0.8];
+  p0 [shape=circle, style=filled, fillcolor="#f8fafc", color="#334155", width=2.4, fixedsize=true, label="0\nScale Up\nsystem"];
+  user -> p0 [label="F1  sign-up details, login credentials", constraint=true];
+  user -> p0 [label="F2  CSV file, upload type, column mapping,\nas-of date, skip / replace choice"];
+  user -> p0 [label="F3  business question"];
+  user -> p0 [label="F4  view requests (dashboard, anomalies,\nimport result, question history)"];
+  p0 -> user [label="F5  login token, account confirmation"];
+  p0 -> user [label="F6  job status, import result, bad-row report"];
+  p0 -> user [label="F7  dashboards, KPIs, alerts,\nanomalies with evidence"];
+  p0 -> user [label="F8  answer with evidence, question history"];
+  p0 -> gemini [label="F9  prompt and tool results (aggregated evidence)"];
+  gemini -> p0 [label="F10  tool-call requests, answer text"];
+}

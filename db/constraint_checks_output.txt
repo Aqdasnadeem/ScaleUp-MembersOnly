@@ -1,0 +1,57 @@
+--- valid inserts (expect no error)
+--- 1 duplicate sale key (expect unique violation)
+psql:test_constraints.sql:9: ERROR:  duplicate key value violates unique constraint "uq_sales_business_order_product"
+DETAIL:  Key (business_id, order_id, product_id)=(b7f9236d-a2f0-4685-a877-1913d0c8eaff, O1, 1) already exists.
+--- 2 ON CONFLICT DO NOTHING skips it silently (expect INSERT 0 0)
+--- 3 quantity 0 (expect check violation)
+psql:test_constraints.sql:13: ERROR:  new row for relation "sales" violates check constraint "chk_sales_quantity"
+DETAIL:  Failing row contains (4, b7f9236d-a2f0-4685-a877-1913d0c8eaff, 8a0967da-809d-4129-8843-973f154003e7, 1, null, O2, 2026-10-02, 0, 5.00, 0.00, 2026-11-04 18:41:08.033352+00).
+--- 4 negative price (expect check violation)
+psql:test_constraints.sql:15: ERROR:  new row for relation "sales" violates check constraint "chk_sales_unit_price"
+DETAIL:  Failing row contains (5, b7f9236d-a2f0-4685-a877-1913d0c8eaff, 8a0967da-809d-4129-8843-973f154003e7, 1, null, O3, 2026-10-02, 1, -5.00, 5.00, 2026-11-04 18:41:08.033677+00).
+--- 5 missing product (expect FK violation)
+psql:test_constraints.sql:17: ERROR:  insert or update on table "sales" violates foreign key constraint "fk_sales_product_id"
+DETAIL:  Key (product_id)=(99999) is not present in table "products".
+--- 6 NULL business_id (expect not-null violation)
+psql:test_constraints.sql:19: ERROR:  null value in column "business_id" of relation "expenses" violates not-null constraint
+DETAIL:  Failing row contains (1, null, 2ef6b4ec-406d-469f-9e10-865f1d2c6db8, 2026-10-01, rent, 100.00, null, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, 2026-11-04 18:41:08.034242+00).
+--- 7 bad status (expect check violation)
+psql:test_constraints.sql:21: ERROR:  new row for relation "ingestion_jobs" violates check constraint "chk_jobs_status"
+DETAIL:  Failing row contains (8a0967da-809d-4129-8843-973f154003e7, b7f9236d-a2f0-4685-a877-1913d0c8eaff, sales, a.csv, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, null, weird, 0, 0, 0, 2026-11-04 18:41:08.026838+00, null, null, null).
+--- 8 bad upload_type (expect check violation)
+psql:test_constraints.sql:23: ERROR:  new row for relation "ingestion_jobs" violates check constraint "chk_jobs_upload_type"
+DETAIL:  Failing row contains (443bd15a-bada-467f-bee4-d7eb06447830, b7f9236d-a2f0-4685-a877-1913d0c8eaff, products, x.csv, cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc, null, pending, 0, 0, 0, 2026-11-04 18:41:08.0347+00, null, null, null).
+--- 9 rating 9 (expect check violation)
+psql:test_constraints.sql:25: ERROR:  new row for relation "feedback" violates check constraint "chk_feedback_rating"
+DETAIL:  Failing row contains (1, b7f9236d-a2f0-4685-a877-1913d0c8eaff, 8a0967da-809d-4129-8843-973f154003e7, null, 2026-10-01, nice, 9, null, dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd, 2026-11-04 18:41:08.034875+00).
+--- 10 feedback without product + valid rating (expect ok)
+--- 11 sale without customer (walk-in) is stored with NULL customer (expect ok, count 1)
+ count 
+-------
+     1
+(1 row)
+
+--- 12 inventory duplicate snapshot (expect unique violation on 2nd)
+psql:test_constraints.sql:32: ERROR:  duplicate key value violates unique constraint "uq_inventory_business_product_date"
+DETAIL:  Key (business_id, product_id, snapshot_date)=(b7f9236d-a2f0-4685-a877-1913d0c8eaff, 1, 2026-10-01) already exists.
+--- 13 negative stock (expect check violation)
+psql:test_constraints.sql:34: ERROR:  new row for relation "inventory" violates check constraint "chk_inventory_stock"
+DETAIL:  Failing row contains (3, b7f9236d-a2f0-4685-a877-1913d0c8eaff, 8a0967da-809d-4129-8843-973f154003e7, 1, 2026-10-02, -1, 2026-11-04 18:41:08.037753+00).
+--- 14 delete business that still has rows (expect FK violation)
+psql:test_constraints.sql:36: ERROR:  update or delete on table "businesses" violates foreign key constraint "fk_ingestion_jobs_business_id" on table "ingestion_jobs"
+DETAIL:  Key (business_id)=(b7f9236d-a2f0-4685-a877-1913d0c8eaff) is still referenced from table "ingestion_jobs".
+--- 15 negative low_stock_threshold (expect check violation)
+psql:test_constraints.sql:38: ERROR:  new row for relation "businesses" violates check constraint "chk_businesses_low_stock"
+DETAIL:  Failing row contains (6603a7fc-f3fc-4d6c-a3bb-7d72d31c3416, Biz B, PKR, DD/MM/YYYY, -1, 2026-11-04 18:41:08.02467+00).
+--- 16 negative cost_price (expect check violation)
+psql:test_constraints.sql:40: ERROR:  new row for relation "products" violates check constraint "chk_products_cost"
+DETAIL:  Failing row contains (1, b7f9236d-a2f0-4685-a877-1913d0c8eaff, 8a0967da-809d-4129-8843-973f154003e7, P1, pen, null, -5.00, 2026-11-04 18:41:08.029085+00).
+--- 17 cost_price 3.50 and NULL (expect ok)
+--- 18 status replaced (expect ok)
+--- 19 error_report JSONB stored (expect ok)
+--- 20 column_mappings: one per business+type (2nd insert expect unique violation)
+psql:test_constraints.sql:50: ERROR:  duplicate key value violates unique constraint "uq_mappings_business_type"
+DETAIL:  Key (business_id, upload_type)=(6603a7fc-f3fc-4d6c-a3bb-7d72d31c3416, sales) already exists.
+--- 21 column_mappings bad upload_type (expect check violation)
+psql:test_constraints.sql:52: ERROR:  new row for relation "column_mappings" violates check constraint "chk_mappings_type"
+DETAIL:  Failing row contains (3, 6603a7fc-f3fc-4d6c-a3bb-7d72d31c3416, products, {}, 2026-11-04 18:41:08.042326+00).

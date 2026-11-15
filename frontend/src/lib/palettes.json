@@ -1,0 +1,43 @@
+{
+  "activePalette": "original-navy-gold",
+  "savedPalettes": {
+    "original-navy-gold": {
+      "name": "Royal Navy & Champagne Gold (Original)",
+      "description": "Original executive enterprise palette with deep navy blues, warm champagne gold accents, and luxury linen beige surfaces.",
+      "colors": {
+        "primary": "#1F2A44",
+        "primaryDark": "#131A2B",
+        "primaryLight": "#2B3A5E",
+        "primaryMuted": "#3D4E75",
+        "accent": "#C6A75E",
+        "accentLight": "#E0C788",
+        "accentGradientEnd": "#D5B873",
+        "accentDark": "#9F823B",
+        "accentSubtle": "#F7EFCF",
+        "background": "#F6F1E8",
+        "cardBackground": "#FAF6EF",
+        "border": "#E8DCC8",
+        "borderDark": "#D5C3A5",
+        "white": "#FFFFFF"
+      },
+      "backupPath": "C:\\Users\\SDC\\Downloads\\ScaleUp\\palette-backups\\original-navy-gold"
+    },
+    "pantone-canyon-sunset": {
+      "name": "Pantone Antelope Canyon Sunset",
+      "description": "Extracted from C:\\Users\\SDC\\Downloads\\color one.jpeg with 5 official Pantone swatches: 281 XGC (Deep Indigo Navy), 659 C (Slate Sky), 2613 C (Canyon Violet), 233 C (Vibrant Magenta), 17-1461 TCX Orangeade.",
+      "colors": {
+        "pantoneNavy": "#152257",
+        "pantoneSky": "#7CA5DB",
+        "pantoneViolet": "#682076",
+        "pantoneMagenta": "#C80180",
+        "pantoneOrangeade": "#E4562E",
+        "background": "#F4F7FC",
+        "cardBackground": "#EFF4FB",
+        "border": "#DCE5F2",
+        "borderDark": "#B8CCE6",
+        "white": "#FFFFFF"
+      },
+      "backupPath": "C:\\Users\\SDC\\Downloads\\ScaleUp\\palette-backups\\pantone-canyon-sunset"
+    }
+  }
+}
