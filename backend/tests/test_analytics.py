@@ -109,3 +109,50 @@ def test_sales_analytics_is_scoped_to_the_authenticated_business(client, auth, c
     ).json()
     assert own["metrics"]["gross_revenue"] == 135.0
     assert other["metrics"]["gross_revenue"] == 235.0
+
+
+def test_product_analytics_compares_periods_and_preserves_missing_cost(client, auth, conn):
+    upload_sales(client, auth, conn, (
+        "Order No,Date,SKU,Product,Qty,Unit Price,Customer,Cost Price\n"
+        "OLD1,2026-03-08,P1,Pen,1,10,C1,4\n"
+        "NEW1,2026-03-10,P1,Pen,2,10,C1,4\n"
+        "NEW2,2026-03-11,P2,Cap,1,5,C1,\n"
+        "OLD2,2026-03-09,P3,Mug,1,20,C1,10\n"
+        "NEW3,2026-03-11,P4,Free,1,0,C1,0\n"
+        "NEW4,2026-03-11,P5,Book,1,10,C1,10\n"
+    ))
+    response = client.get(
+        "/analytics/products",
+        params={"start_date": "2026-03-10", "end_date": "2026-03-11"},
+        headers=auth,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert (data["previous_start_date"], data["previous_end_date"]) == ("2026-03-08", "2026-03-09")
+    products = {p["product_key"]: p for p in data["products"]}
+    assert products["P1"]["gross_revenue"] == 20
+    assert products["P1"]["previous_gross_revenue"] == 10
+    assert products["P1"]["margin_percent"] == 60
+    assert products["P2"]["margin_percent"] is None
+    assert products["P3"]["gross_revenue"] == 0
+    assert products["P3"]["previous_gross_revenue"] == 20
+    assert products["P3"]["margin_percent"] is None
+    assert products["P4"]["margin_percent"] is None
+    assert products["P5"]["margin_percent"] == 0
+
+
+def test_product_analytics_auth_range_empty_and_business_isolation(client, auth, conn):
+    upload_sales(client, auth, conn)
+    other_business = conn.cursor()
+    other_business.execute("INSERT INTO businesses(business_name) VALUES('product-other') RETURNING business_id")
+    other_id = other_business.fetchone()[0]
+    conn.commit()
+    other_auth = {"Authorization": "Bearer " + make_token(other_id)}
+    params = {"start_date": "2026-03-10", "end_date": "2026-03-12"}
+    assert client.get("/analytics/products", params=params).status_code == 401
+    assert client.get("/analytics/products", params=params, headers=other_auth).json()["products"] == []
+    assert client.get(
+        "/analytics/products",
+        params={"start_date": "2026-03-12", "end_date": "2026-03-10"},
+        headers=auth,
+    ).status_code == 422

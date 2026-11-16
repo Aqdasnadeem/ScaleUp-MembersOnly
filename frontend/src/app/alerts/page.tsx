@@ -1,5 +1,5 @@
-import { NoDataYet } from "@/components/PlaceholderPages";
+import LowStockAlerts from "@/components/LowStockAlerts";
 
 export default function Page() {
-  return <NoDataYet title="Alerts" />;
+  return <LowStockAlerts />;
 }

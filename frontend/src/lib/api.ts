@@ -1,3 +1,21 @@
+import { parseProductRanking, type ProductRankingResponse } from "./product-ranking";
+import { parseAnomalies, type AnomaliesResponse } from "./anomalies";
+import {
+  parseExpenseCategories,
+  parseExpenseEntries,
+  type ExpenseCategoriesResponse,
+  type ExpenseEntriesResponse,
+} from "./expenses";
+import {
+  parseInventoryAlerts,
+  parseInventoryHistory,
+  parseInventoryProduct,
+  parseInventoryProducts,
+  type InventoryAlertsResponse,
+  type InventoryHistoryResponse,
+  type InventoryProduct,
+} from "./inventory";
+
 const API = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 const TOKEN_KEY = "scaleup_token";
 
@@ -278,6 +296,72 @@ export function getSalesAnalytics(options: {
     interval: options.interval,
   });
   return requestJson<SalesAnalyticsResponse>(`/analytics/sales?${query.toString()}`);
+}
+
+export async function getProductRanking(options: {
+  startDate: string;
+  endDate: string;
+}): Promise<ProductRankingResponse> {
+  const query = new URLSearchParams({ start_date: options.startDate, end_date: options.endDate });
+  const response = await request(`/analytics/products?${query.toString()}`);
+  const payload: unknown = await response.json();
+  return parseProductRanking(payload);
+}
+
+export async function getExpenseCategories(month: string): Promise<ExpenseCategoriesResponse> {
+  const query = new URLSearchParams({ month });
+  const response = await request(`/analytics/expenses?${query.toString()}`);
+  const result = parseExpenseCategories(await response.json());
+  if (result.month !== month) throw new Error("The server returned expenses for a different month.");
+  return result;
+}
+
+export async function getAnomalies(startDate: string, endDate: string): Promise<AnomaliesResponse> {
+  const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  const response = await request(`/analytics/anomalies?${query.toString()}`);
+  const result = parseAnomalies(await response.json());
+  if (result.start_date !== startDate || result.end_date !== endDate) {
+    throw new Error("The server returned anomalies for a different date range.");
+  }
+  return result;
+}
+
+export async function getExpenseEntries(month: string, category: string): Promise<ExpenseEntriesResponse> {
+  const query = new URLSearchParams({ month, category });
+  const response = await request(`/analytics/expenses/entries?${query.toString()}`);
+  const result = parseExpenseEntries(await response.json());
+  if (result.month !== month || result.category !== category) {
+    throw new Error("The server returned entries for a different month or category.");
+  }
+  return result;
+}
+
+export async function getInventoryAlerts(): Promise<InventoryAlertsResponse> {
+  const response = await request("/analytics/inventory/alerts");
+  const payload: unknown = await response.json();
+  return parseInventoryAlerts(payload);
+}
+
+export async function getInventoryProduct(productId: string): Promise<InventoryProduct> {
+  const response = await request(`/analytics/inventory/products/${encodeURIComponent(productId)}`);
+  const payload: unknown = await response.json();
+  return parseInventoryProduct(payload);
+}
+
+export async function getInventoryProducts(): Promise<InventoryProduct[]> {
+  const response = await request("/analytics/inventory/products");
+  const payload: unknown = await response.json();
+  return parseInventoryProducts(payload);
+}
+
+export async function getInventoryHistory(productId: string): Promise<InventoryHistoryResponse> {
+  const response = await request(`/analytics/inventory/products/${encodeURIComponent(productId)}/history`);
+  const payload: unknown = await response.json();
+  const history = parseInventoryHistory(payload);
+  if (String(history.product_id) !== productId) {
+    throw new Error("The server returned inventory history for a different product.");
+  }
+  return history;
 }
 
 export function getUpload(jobId: string | number): Promise<UploadJobDetail> {

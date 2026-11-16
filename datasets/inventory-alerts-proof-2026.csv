@@ -1,0 +1,6 @@
+product_id,product_name,stock_quantity,snapshot_date,cost_price
+ALERT-TEST-001,Wireless Mouse,0,2026-11-16,1800
+ALERT-TEST-002,Notebook Pack,3,2026-11-16,350
+ALERT-TEST-003,Desk Lamp,7,2026-11-16,2200
+ALERT-TEST-004,USB Cable,10,2026-11-16,400
+ALERT-TEST-005,Water Bottle,25,2026-11-16,600

@@ -59,7 +59,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupName: "Insights",
     items: [
-      { name: "Alerts", href: "/anomalies", icon: TriangleAlert, planned: true },
+      { name: "Alerts", href: "/alerts", icon: TriangleAlert },
+      { name: "Anomalies", href: "/anomalies", icon: TriangleAlert },
       { name: "Recommendations", href: "/recommendations", icon: Lightbulb, planned: true },
       { name: "Evidence", href: "/evidence", icon: Database },
       { name: "Investigation", href: "/investigation", icon: Search, planned: true },
@@ -119,8 +120,7 @@ export default function Sidebar({ isMobileOpen, isCollapsed, onNavigate, busines
               </p>}
               {group.items.map((item) => {
                 const isActive = activePath === item.href
-                  || activePath.startsWith(`${item.href}/`)
-                  || (item.href === "/anomalies" && activePath === "/alerts");
+                  || activePath.startsWith(`${item.href}/`);
                 const Icon = item.icon;
 
                 return (

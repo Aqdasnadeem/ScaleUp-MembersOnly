@@ -1,5 +1,5 @@
-import { NoDataYet } from "@/components/PlaceholderPages";
+import AnomaliesList from "@/components/AnomaliesList";
 
 export default function Page() {
-  return <NoDataYet title="Alerts" />;
+  return <AnomaliesList />;
 }

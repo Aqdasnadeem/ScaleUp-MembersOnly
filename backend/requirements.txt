@@ -3,6 +3,7 @@ uvicorn>=0.29
 pydantic>=2.5
 psycopg2-binary>=2.9
 python-multipart>=0.0.9
+python-dotenv
 pyjwt>=2.8
 tzdata>=2024.1
 # tests

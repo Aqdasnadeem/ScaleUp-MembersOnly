@@ -1,5 +1,5 @@
-import { NoDataYet } from "@/components/PlaceholderPages";
+import ExpensesAnalytics from "@/components/ExpensesAnalytics";
 
 export default function Page() {
-  return <NoDataYet title="Expenses" />;
+  return <ExpensesAnalytics />;
 }

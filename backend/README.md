@@ -38,6 +38,48 @@ requires a bearer token. Dates are inclusive; the business is taken only from th
 The response contains gross revenue, distinct order count, average order value, and
 the requested daily or monthly series, all calculated from persisted sales records.
 
+`GET /analytics/products?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` compares
+product gross revenue against the immediately preceding period of equal length.
+Margin is `(gross revenue - quantity * product cost) / gross revenue * 100`;
+it is null when cost is missing or revenue is zero. Product costs are the current
+fill-only costs stored on products, not historical costs.
+
+## Inventory alerts (local P2-25 implementation)
+
+`GET /analytics/inventory/alerts` lists products whose latest inventory snapshot is
+zero or below the business's `low_stock_threshold`. `GET
+/analytics/inventory/products/{product_id}` returns that business-owned product's
+latest snapshot. Both require a bearer token. A stockout is included even if the
+threshold is zero; products without a snapshot are not assumed to be out of stock.
+
+`GET /analytics/inventory/products` lists products with inventory snapshots.
+`GET /analytics/inventory/products/{product_id}/history` returns that product's
+persisted snapshots in chronological order, scoped to the authenticated business.
+These are stock levels on recorded dates, not inferred transactions between dates.
+
+## Expense analytics (local P2-27 implementation)
+
+Authenticated `GET /analytics/expenses?month=YYYY-MM` compares category totals for
+the selected calendar month with the previous calendar month. The percentage is
+null when the previous total is zero. Categories present only in the previous month
+are included with a current total of zero. `GET /analytics/expenses/entries?month=YYYY-MM&category=...`
+returns the selected month's individual entries for that category. Both endpoints
+read persisted expenses scoped to the authenticated business. These local endpoints
+may need alignment with the official P2-27-BE contract when it is available.
+
+## Anomalies (local P2-30 dependency)
+
+Authenticated `GET /analytics/anomalies?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+computes comparisons on demand for the inclusive range, with optional `type=sales`,
+`expenses`, or `inventory`. A change of at least 50% is reported only when its
+reference is positive. Sales compare each day's revenue with the average of recorded
+sales days in the prior seven calendar days (at least three recorded days required).
+Expenses compare a category's monthly total with its previous recorded calendar
+month; the end month may be incomplete. Inventory compares each product snapshot
+with its prior snapshot. Evidence contains the actual compared values.
+These provisional local calculations do not implement P2-29's scheduled job or
+persist anomaly results and may need to be replaced when its official API is available.
+
 ## Decisions you must know about
 1. **Login (P2-08-BE) is in this folder now:** `app/routes_auth.py` (`POST /auth/signup`, `POST /auth/login`, `GET /auth/me`), `app/auth.py` (JWT with `business_id`, valid 60 min as NFR-SEC-02 says), `app/security.py` (scrypt salted hash). Every other router takes the business only from the token. Not done: rate limiting of login attempts, password reset, refresh tokens.
 2. **The worker (P2-51) is `app/worker.py`.** Start it next to the API: `py -m app.worker` (keeps polling every 2 s; `--once` = one job). Bad CSV fails at once; only temporary problems (lost DB connection, deadlock) are retried, 3 attempts in total; the load is one transaction and skips existing rows, so a retry cannot duplicate rows. Two workers never take the same job (`FOR UPDATE SKIP LOCKED`); a job left in `processing` by a crash is put back to `pending` after 15 minutes by any worker. Limits: the uploaded file must be on the same machine/disk as the worker (open question for deploy, M7).

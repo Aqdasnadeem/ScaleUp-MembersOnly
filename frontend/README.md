@@ -19,6 +19,25 @@ Requirements: Node.js 20.9 or later and the FastAPI service reachable at `http:/
 
 Sign-up, sign-in, business lookup, CSV preview/upload, templates, upload history, and authenticated dashboard sales analytics call FastAPI directly. The dashboard's gross revenue, distinct orders, average order value, and daily/monthly trend come from `GET /analytics/sales` and can be filtered by inclusive dates. Public `/demo` pages use sample data and are separate from authenticated application pages. Password recovery is not part of the current FastAPI contract.
 
+The product ranking table uses `GET /analytics/products` and compares the selected dates
+with the immediately preceding equal-length period. Sort by product, revenue, previous
+revenue, or margin; unavailable margins appear as N/A. Margins use the current stored
+product cost, so they are not historical cost estimates.
+
+The Inventory and Alerts pages use the authenticated FastAPI inventory alerts endpoint.
+Alerts link to product details and use each product's latest uploaded inventory snapshot;
+the business's configured low-stock threshold determines low stock.
+Inventory products link to a chart of their recorded stock snapshots from the authenticated
+history API. The chart shows saved stock levels, not transactions inferred between snapshots.
+
+The Expenses page uses the authenticated local expense analytics API to compare
+category totals with the preceding calendar month and expand individual entries.
+When the previous total is zero, the percentage change is shown as N/A.
+
+The Anomalies page filters the local authenticated anomaly API by type and expands
+each finding into a chart of its actual evidence. Local on-demand rules are provisional
+and distinct from the pending P2-29 scheduled anomaly job.
+
 ## Checks
 
 ```powershell

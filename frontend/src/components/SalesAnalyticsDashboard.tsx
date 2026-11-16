@@ -21,6 +21,7 @@ import {
   type SalesTrendInterval,
 } from "@/lib/api";
 import { formatDate } from "@/lib/date";
+import ProductRankingTable from "@/components/ProductRankingTable";
 
 interface DateRange {
   startDate: string;
@@ -374,6 +375,15 @@ export default function SalesAnalyticsDashboard() {
           </div>
         )}
       </section>
+      {business && (
+        <ProductRankingTable
+          key={`${filters.startDate}:${filters.endDate}`}
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+          currency={currency}
+          dateFormat={dateFormat}
+        />
+      )}
     </div>
   );
 }
