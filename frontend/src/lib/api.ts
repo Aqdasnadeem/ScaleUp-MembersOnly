@@ -58,6 +58,24 @@ export interface UploadJobDetail extends UploadJob {
   error_report: UploadErrorRow[];
 }
 
+export type SalesTrendInterval = "daily" | "monthly";
+
+export interface SalesAnalyticsResponse {
+  start_date: string;
+  end_date: string;
+  interval: SalesTrendInterval;
+  metrics: {
+    gross_revenue: number;
+    orders: number;
+    average_order_value: number;
+  };
+  trend: Array<{
+    period: string;
+    gross_revenue: number;
+    orders: number;
+  }>;
+}
+
 export type CreateUploadResult =
   | { kind: "queued"; job_id: string | number; status: "pending" }
   | { kind: "skipped"; existing_job_id: string | number }
@@ -247,6 +265,19 @@ export async function createUpload(options: {
 export function listUploads(limit?: number): Promise<{ items: UploadJob[] }> {
   const query = limit === undefined ? "" : `?limit=${encodeURIComponent(String(limit))}`;
   return requestJson<{ items: UploadJob[] }>(`/uploads${query}`);
+}
+
+export function getSalesAnalytics(options: {
+  startDate: string;
+  endDate: string;
+  interval: SalesTrendInterval;
+}): Promise<SalesAnalyticsResponse> {
+  const query = new URLSearchParams({
+    start_date: options.startDate,
+    end_date: options.endDate,
+    interval: options.interval,
+  });
+  return requestJson<SalesAnalyticsResponse>(`/analytics/sales?${query.toString()}`);
 }
 
 export function getUpload(jobId: string | number): Promise<UploadJobDetail> {

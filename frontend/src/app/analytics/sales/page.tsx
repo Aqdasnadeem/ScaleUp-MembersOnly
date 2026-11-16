@@ -1,5 +1,5 @@
-import { NoDataYet } from "@/components/PlaceholderPages";
+import SalesAnalyticsDashboard from "@/components/SalesAnalyticsDashboard";
 
-export default function Page() {
-  return <NoDataYet title="Sales and revenue" />;
+export default function SalesAnalyticsPage() {
+  return <SalesAnalyticsDashboard />;
 }

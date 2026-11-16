@@ -105,7 +105,7 @@ export default function Sidebar({ isMobileOpen, isCollapsed, onNavigate, busines
           <Link href="/" onClick={onNavigate} className={`flex items-center gap-3 group ${isCollapsed ? "lg:justify-center" : ""}`}>
             <ScaleUpLogo size="md" preload />
             {!isCollapsed && (
-              <span className="font-extrabold text-lg text-white tracking-wide">ScaleUp</span>
+              <span className="text-2xl font-extrabold text-white tracking-wide">ScaleUp</span>
             )}
           </Link>
         </div>

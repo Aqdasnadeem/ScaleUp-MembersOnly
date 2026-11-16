@@ -31,6 +31,13 @@ py -m app.worker                         # the worker: leave it running in a sec
 ```
 Real curl output: `docs/API_EXAMPLES.md`.
 
+## Sales analytics (P2-23-BE)
+
+`GET /analytics/sales?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&interval=daily|monthly`
+requires a bearer token. Dates are inclusive; the business is taken only from the token.
+The response contains gross revenue, distinct order count, average order value, and
+the requested daily or monthly series, all calculated from persisted sales records.
+
 ## Decisions you must know about
 1. **Login (P2-08-BE) is in this folder now:** `app/routes_auth.py` (`POST /auth/signup`, `POST /auth/login`, `GET /auth/me`), `app/auth.py` (JWT with `business_id`, valid 60 min as NFR-SEC-02 says), `app/security.py` (scrypt salted hash). Every other router takes the business only from the token. Not done: rate limiting of login attempts, password reset, refresh tokens.
 2. **The worker (P2-51) is `app/worker.py`.** Start it next to the API: `py -m app.worker` (keeps polling every 2 s; `--once` = one job). Bad CSV fails at once; only temporary problems (lost DB connection, deadlock) are retried, 3 attempts in total; the load is one transaction and skips existing rows, so a retry cannot duplicate rows. Two workers never take the same job (`FOR UPDATE SKIP LOCKED`); a job left in `processing` by a crash is put back to `pending` after 15 minutes by any worker. Limits: the uploaded file must be on the same machine/disk as the worker (open question for deploy, M7).

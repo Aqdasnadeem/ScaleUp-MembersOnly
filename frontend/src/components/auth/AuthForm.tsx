@@ -86,7 +86,7 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
         <div className="fixed inset-y-0 left-0 z-0 hidden w-1/2 flex-col justify-center gap-16 bg-[#1F2A44] p-10 text-[#E8DCC8] md:flex lg:p-14">
           <Link href="/" aria-label="ScaleUp home" className="inline-flex w-fit items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E0C788]">
             <ScaleUpLogo size="lg" preload />
-            <span className="text-3xl font-extrabold tracking-tight text-white">ScaleUp</span>
+            <span className="text-4xl font-extrabold tracking-tight text-white">ScaleUp</span>
           </Link>
           <div className="max-w-xl">
             <p className="text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-5xl">
@@ -115,7 +115,7 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
         <div className="mb-6 flex w-full max-w-xl items-center gap-3 md:hidden">
           <Link href="/" aria-label="ScaleUp home" className="inline-flex items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#88682A]">
             <ScaleUpLogo size="md" preload />
-            <span className="text-2xl font-extrabold tracking-tight text-[#1F2A44]">ScaleUp</span>
+            <span className="text-3xl font-extrabold tracking-tight text-[#1F2A44]">ScaleUp</span>
           </Link>
         </div>
         <div className="w-full max-w-xl rounded-2xl border border-[#D5C3A5] bg-white p-5 shadow-sm sm:p-8 lg:p-10">

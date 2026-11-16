@@ -281,7 +281,7 @@ export default function LandingPage() {
             aria-label="ScaleUp home"
           >
             <ScaleUpLogo size="md" />
-            <span className="text-2xl">ScaleUp</span>
+            <span className="text-3xl">ScaleUp</span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-semibold md:flex" aria-label="Main navigation">
             {navigation.map(({ label, id }) => (
@@ -612,7 +612,7 @@ export default function LandingPage() {
           <div>
             <Link href="/" className="inline-flex items-center gap-2 rounded-md font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E0C788]">
               <ScaleUpLogo size="sm" />
-              <span>ScaleUp</span>
+              <span className="text-xl">ScaleUp</span>
             </Link>
             <p className="mt-3 max-w-sm text-sm leading-6">
               Upload your business files and find out why your numbers changed, with the evidence behind every answer.
