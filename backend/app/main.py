@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes_auth import router as auth_router
+from .routes_expenses import router as expenses_router
 from .routes_uploads import router as uploads_router
 
 app = FastAPI(title="Scale Up API", version="0.2")          # OpenAPI docs at /docs (FR-API-01)
@@ -10,3 +11,4 @@ app.add_middleware(CORSMiddleware, allow_origins=[o for o in os.environ.get("COR
                    allow_methods=["*"], allow_headers=["*"])
 app.include_router(auth_router)
 app.include_router(uploads_router)
+app.include_router(expenses_router)
