@@ -13,14 +13,17 @@ import app.db  # noqa: E402,F401  (registers the UUID adapter)
 os.environ.setdefault("JWT_SECRET", "test-secret-not-used-anywhere-else")
 TEST_DB = "scaleup_backend_test"
 MIGRATIONS = ROOT.parent / "db"
-UP = ["001_create_core_tables.up.sql", "002_create_data_tables.up.sql", "003_create_indexes.up.sql"]
+UP = ["001_create_core_tables.up.sql", "002_create_data_tables.up.sql", "003_create_indexes.up.sql",
+      "004_create_indexes_rest.up.sql", "005_admin_and_plans.up.sql",
+      "006_create_anomalies.up.sql"]        # 004/005 were missing from here (pre-existing gap); added for the admin ticket
 
 @pytest.fixture(scope="session", autouse=True)
 def database(tmp_path_factory):
     os.environ.pop("PGDATABASE", None)
     a = psycopg2.connect(dbname="postgres"); a.autocommit = True
     a.cursor().execute("drop database if exists %s with (force)" % TEST_DB)
-    a.cursor().execute("create database " + TEST_DB); a.close()
+    # Windows PostgreSQL clusters may default to a legacy code page that cannot store Unicode test data.
+    a.cursor().execute("create database " + TEST_DB + " with template template0 encoding 'UTF8'"); a.close()
     c = psycopg2.connect(dbname=TEST_DB); c.autocommit = True
     for f in UP:
         c.cursor().execute((MIGRATIONS / f).read_text(encoding="utf-8"))
@@ -46,6 +49,22 @@ def biz(conn):
     b = cur.fetchone()[0]; conn.commit()
     return b
 
-def make_token(business_id):
+def make_token(conn, business_id=None, role="business_user"):
+    """Mint a token backed by a REAL users row (a fresh one each call), so current_business_id's and
+    require_super_admin's is_active lookup finds a real user, not a fake sub. Old signature was
+    make_token(business_id) with sub="test-user"; this is the one required change those checks need."""
     import jwt
-    return jwt.encode({"business_id": str(business_id), "sub": "test-user"}, os.environ["JWT_SECRET"], algorithm="HS256")
+    cur = conn.cursor()
+    cur.execute(
+        "insert into users(business_id, email, password_hash, role, is_active) "
+        "values (%s, %s, '!fixture-no-login', %s, true) returning user_id",
+        (business_id, "fixture-%s@test.invalid" % uuid.uuid4().hex, role),
+    )
+    user_id = cur.fetchone()[0]
+    conn.commit()
+    claims = {
+        "sub": str(user_id),
+        "business_id": str(business_id) if business_id else None,
+        "role": role,
+    }
+    return jwt.encode(claims, os.environ["JWT_SECRET"], algorithm="HS256")

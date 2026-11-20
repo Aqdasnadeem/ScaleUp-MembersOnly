@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from . import config
 from .auth import create_token, current_business_id
+from .billing import effective_plan
 from .routes_uploads import get_conn
 from .security import hash_password, verify_password
 
@@ -16,7 +17,7 @@ _DUMMY_HASH = hash_password("dummy-password-for-timing")          # so an unknow
 
 class Credentials(BaseModel):
     email: str = Field(max_length=255)
-    password: str = Field(max_length=128)
+    password: str                                   # no length limit on login: a wrong password must give 401, not 422
     @field_validator("email")
     @classmethod
     def _email(cls, v):
@@ -25,6 +26,7 @@ class Credentials(BaseModel):
         return v
 
 class SignupIn(Credentials):
+    password: str = Field(max_length=128)           # sign-up only
     business_name: str = Field(min_length=1, max_length=255)
     @field_validator("business_name")
     @classmethod
@@ -38,8 +40,14 @@ class SignupIn(Credentials):
         if len(v) < config.MIN_PASSWORD_LENGTH: raise ValueError("password must be at least %d characters" % config.MIN_PASSWORD_LENGTH)
         return v
 
-def _token_reply(user_id, business_id, name):
-    return {"access_token": create_token(user_id, business_id), "token_type": "bearer", "business_id": str(business_id), "business_name": name}
+def _token_reply(user_id, business_id, name, role="business_user"):
+    return {
+        "access_token": create_token(user_id, business_id, role),
+        "token_type": "bearer",
+        "business_id": str(business_id) if business_id else None,
+        "business_name": name,
+        "role": role,
+    }
 
 @router.post("/signup", status_code=201)
 def signup(body: SignupIn, conn=Depends(get_conn)):
@@ -58,18 +66,26 @@ def signup(body: SignupIn, conn=Depends(get_conn)):
 
 @router.post("/login")
 def login(body: Credentials, conn=Depends(get_conn)):
+    # LEFT JOIN: a super_admin row has business_id = NULL, so there is no businesses row to join to.
     cur = conn.cursor()
-    cur.execute("select u.user_id,u.business_id,u.password_hash,b.business_name from users u join businesses b using(business_id) where u.email=%s", (body.email,))
+    cur.execute(
+        "select u.user_id, u.business_id, u.password_hash, u.role, u.is_active, b.business_name, b.status "
+        "from users u left join businesses b on b.business_id = u.business_id where u.email=%s",
+        (body.email,),
+    )
     row = cur.fetchone()
     ok = verify_password(body.password, row[2] if row else _DUMMY_HASH)
-    if not row or not ok:
+    if not row or not ok or not row[4]:                                 # unknown email, wrong password, or deactivated
         raise HTTPException(401, BAD_LOGIN)
-    return _token_reply(row[0], row[1], row[3])
+    if row[6] == "suspended":
+        raise HTTPException(403, "This business account is suspended.")
+    return _token_reply(row[0], row[1], row[5], row[3])
 
 @router.get("/me")
 def me(business=Depends(current_business_id), conn=Depends(get_conn)):
     cur = conn.cursor()
-    cur.execute("select business_name, currency, date_format from businesses where business_id=%s", (business,))
+    cur.execute("select business_name, currency, date_format, plan, plan_expires_at from businesses where business_id=%s", (business,))
     r = cur.fetchone()
     if not r: raise HTTPException(401, "invalid token")
-    return {"business_id": str(business), "business_name": r[0], "currency": r[1], "date_format": r[2]}
+    return {"business_id": str(business), "business_name": r[0], "currency": r[1], "date_format": r[2],
+            "plan": effective_plan(r[3], r[4])}

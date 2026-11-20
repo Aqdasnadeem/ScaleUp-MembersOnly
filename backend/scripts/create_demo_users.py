@@ -2,8 +2,8 @@
 Goes through the real API (POST /auth/signup), so passwords are hashed exactly as in the app. There is one role only (Business user).
     py scripts/create_demo_users.py           (API must be running; asks for ONE password used for both accounts)
 Environment: API_URL (default http://localhost:8000), DEMO_EMAIL (default demo@scaleup.test, business "Demo Traders"),
-OTHER_EMAIL (default corner@scaleup.test, business "Corner Store"), DEMO_PASSWORD (else asked). Safe to run again.
-Afterwards run scripts/load_demo_data.py (loads the demo CSVs into both businesses). The check at the end logs in as the OTHER business
+OTHER_EMAIL (default other@scaleup.test, business "Other Traders"), DEMO_PASSWORD (else asked). Safe to run again.
+Afterwards run scripts/load_demo_data.py (loads the demo CSVs into Demo Traders). The check at the end logs in as the OTHER business
 and shows that it sees none of Demo Traders' uploads."""
 import getpass
 import os
@@ -12,7 +12,7 @@ import httpx
 
 API = os.environ.get("API_URL", "http://localhost:8000")
 ACCOUNTS = [(os.environ.get("DEMO_EMAIL", "demo@scaleup.test"), "Demo Traders"),
-            (os.environ.get("OTHER_EMAIL", "corner@scaleup.test"), "Corner Store")]
+            (os.environ.get("OTHER_EMAIL", "other@scaleup.test"), "Other Traders")]
 PASSWORD = os.environ.get("DEMO_PASSWORD") or getpass.getpass("demo password for both accounts (min 8 characters): ")
 c = httpx.Client(base_url=API, timeout=30)
 tokens = {}

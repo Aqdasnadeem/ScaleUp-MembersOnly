@@ -1,35 +1,29 @@
-# Environment variables and secrets
 .env
 .env.*
 !.env.example
-backend/.env
-frontend/.env
-frontend/.env.local
+!**/.env.example
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
+uploads/
+**/uploads/
 
-# Uploads
-backend/uploads/
-
-# Next.js
-frontend/.next/
-frontend/.next-dev/
-frontend/out/
-
-# Node
 node_modules/
+**/node_modules/
+.next/
+**/.next/
+.next-dev/
+**/.next-dev/
 
-# Build files
-dist/
-build/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+.venv/
+**/.venv/
+venv/
+**/venv/
 
-# Logs
+*.dump
+*.zip
 *.log
-
-# OS files
-.DS_Store
-Thumbs.db
+NOTES.md
+**/NOTES.md

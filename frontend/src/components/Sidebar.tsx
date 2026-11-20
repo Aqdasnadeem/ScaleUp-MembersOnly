@@ -18,10 +18,11 @@ import {
   TrendingUp,
   MessageSquareText,
   Search,
+  Building2,
 } from "lucide-react";
 import ScaleUpLogo from "@/components/ScaleUpLogo";
 import { useRouter } from "next/navigation";
-import { clearToken } from "@/lib/api";
+import { clearToken, getRole } from "@/lib/api";
 import { resetBusiness, useBusiness } from "@/hooks/useBusiness";
 import type { LucideIcon } from "lucide-react";
 
@@ -59,7 +60,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     groupName: "Insights",
     items: [
-      { name: "Alerts", href: "/anomalies", icon: TriangleAlert, planned: true },
+      { name: "Alerts", href: "/alerts", icon: TriangleAlert },
+      { name: "Anomalies", href: "/anomalies", icon: TriangleAlert },
       { name: "Recommendations", href: "/recommendations", icon: Lightbulb, planned: true },
       { name: "Evidence", href: "/evidence", icon: Database },
       { name: "Investigation", href: "/investigation", icon: Search, planned: true },
@@ -73,11 +75,27 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const ADMIN_NAV_GROUPS: NavGroup[] = [
+  {
+    groupName: "Platform",
+    items: [
+      { name: "Overview", href: "/admin", icon: LayoutDashboard },
+      { name: "Businesses", href: "/admin/businesses", icon: Building2 },
+      { name: "Users", href: "/admin/users", icon: UserRound },
+    ],
+  },
+];
+
 export default function Sidebar({ isMobileOpen, isCollapsed, onNavigate, businessName: fallbackName, isPreview = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { business } = useBusiness(!isPreview);
-  const businessName = business?.business_name ?? fallbackName;
+  const isAdmin = !isPreview && getRole() === "super_admin";
+  // A super admin has no business and GET /auth/me is a business-only route (403 for admins),
+  // so skip that fetch entirely for an admin session.
+  const { business } = useBusiness(!isPreview && !isAdmin);
+  const businessName = isAdmin ? "Platform admin" : (business?.business_name ?? fallbackName);
+  const plan = business?.plan;
+  const navGroups = isAdmin ? ADMIN_NAV_GROUPS : NAV_GROUPS;
 
   const initials = businessName
     .trim()
@@ -105,22 +123,21 @@ export default function Sidebar({ isMobileOpen, isCollapsed, onNavigate, busines
           <Link href="/" onClick={onNavigate} className={`flex items-center gap-3 group ${isCollapsed ? "lg:justify-center" : ""}`}>
             <ScaleUpLogo size="md" preload />
             {!isCollapsed && (
-              <span className="font-extrabold text-lg text-white tracking-wide">ScaleUp</span>
+              <span className="text-2xl font-extrabold text-white tracking-wide">ScaleUp</span>
             )}
           </Link>
         </div>
 
         {/* Navigation Sections */}
         <nav id="primary-navigation" aria-label="Primary navigation" className="sidebar-navigation min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.groupName} className="space-y-0.5">
               {!isCollapsed && <p className="px-3 py-1 text-[11px] font-bold tracking-widest uppercase text-[#E0C788]">
                 {group.groupName}
               </p>}
               {group.items.map((item) => {
                 const isActive = activePath === item.href
-                  || activePath.startsWith(`${item.href}/`)
-                  || (item.href === "/anomalies" && activePath === "/alerts");
+                  || activePath.startsWith(`${item.href}/`);
                 const Icon = item.icon;
 
                 return (
@@ -173,24 +190,51 @@ export default function Sidebar({ isMobileOpen, isCollapsed, onNavigate, busines
         </nav>
       </div>
 
+      {!isAdmin && !isPreview && !isCollapsed && (
+        <div className="shrink-0 border-t border-[#2D3D60] px-4 py-2">
+          <Link
+            href="/billing"
+            onClick={onNavigate}
+            className="flex min-h-8 items-center justify-between rounded-lg px-2 py-1 text-xs font-bold hover:bg-[#2B3A5E]"
+          >
+            <span className={plan === "pro" ? "text-[#C6A75E]" : "text-[#E8DCC8]"}>
+              {plan === "pro" ? "Pro plan" : "Free plan"}
+            </span>
+            {plan !== "pro" && <span className="rounded-full border border-[#C6A75E]/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[#E0C788]">Upgrade</span>}
+          </Link>
+        </div>
+      )}
+
       {/* Footer User Profile & Logout */}
       <div className={`relative z-10 shrink-0 border-t border-[#2D3D60] bg-[#131A2B] ${isCollapsed ? "p-2 lg:p-2" : "p-4"}`}>
         {null}
         <div className={`flex ${isCollapsed ? "flex-col items-center gap-1" : "items-center justify-between gap-2 px-1"}`}>
-          <Link
-            href={navigationHref("/profile")}
-            onClick={onNavigate}
-            className={`flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg p-1 hover:bg-[#2B3A5E] ${isCollapsed ? "h-10 w-10 shrink-0 justify-center p-0 lg:justify-center" : "flex-1"}`}
-            aria-label="Open profile"
-          >
-            <div className="w-8 h-8 shrink-0 rounded-full bg-[#C6A75E] flex items-center justify-center font-bold text-xs text-[#1F2A44] shadow-sm">
-              {initials}
+          {isAdmin ? (
+            <div className={`flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg p-1 ${isCollapsed ? "h-10 w-10 shrink-0 justify-center p-0 lg:justify-center" : "flex-1"}`}>
+              <div className="w-8 h-8 shrink-0 rounded-full bg-[#C6A75E] flex items-center justify-center font-bold text-xs text-[#1F2A44] shadow-sm">
+                {initials}
+              </div>
+              {!isCollapsed && <div className="min-w-0 overflow-hidden leading-4">
+                <p className="truncate text-xs font-semibold text-[#E8DCC8]">Super Admin</p>
+                <p className="truncate text-[11px] text-[#E0C788]">{businessName}</p>
+              </div>}
             </div>
-            {!isCollapsed && <div className="min-w-0 overflow-hidden leading-4">
-              <p className="truncate text-xs font-semibold text-[#E8DCC8]">Business User</p>
-              <p className="truncate text-[11px] text-[#E0C788]">{businessName}</p>
-            </div>}
-          </Link>
+          ) : (
+            <Link
+              href={navigationHref("/profile")}
+              onClick={onNavigate}
+              className={`flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg p-1 hover:bg-[#2B3A5E] ${isCollapsed ? "h-10 w-10 shrink-0 justify-center p-0 lg:justify-center" : "flex-1"}`}
+              aria-label="Open profile"
+            >
+              <div className="w-8 h-8 shrink-0 rounded-full bg-[#C6A75E] flex items-center justify-center font-bold text-xs text-[#1F2A44] shadow-sm">
+                {initials}
+              </div>
+              {!isCollapsed && <div className="min-w-0 overflow-hidden leading-4">
+                <p className="truncate text-xs font-semibold text-[#E8DCC8]">Business User</p>
+                <p className="truncate text-[11px] text-[#E0C788]">{businessName}</p>
+              </div>}
+            </Link>
+          )}
 
           {isPreview ? (
             <Link

@@ -9,15 +9,32 @@ Several workers may run: take_next_job uses FOR UPDATE SKIP LOCKED, so two worke
 A worker that crashes leaves its job in 'processing'. Every worker puts such jobs back to 'pending' once they have been processing
 longer than config.WORKER_STUCK_MINUTES (started_at), at start and before each look for work. The load is all-or-nothing and skips
 rows that already exist, so running a recovered job again cannot duplicate anything."""
+import logging
 import sys
 import time
 import uuid
 import psycopg2
 from . import config
+from .anomalies import run_detection
 from .db import connect
 from .pipeline import TemporaryFailure, process_job
 
 TEMPORARY = (TemporaryFailure, psycopg2.OperationalError, psycopg2.InterfaceError)
+DONE_STATUSES = ("completed", "completed_with_warnings")
+logger = logging.getLogger(__name__)
+
+def _run_detection_after_load(conn, job_id):
+    """P2-29 (sir, 18 Nov): run anomaly detection for a job's business right after a
+    successful load. Never lets a detector problem affect the upload job itself -
+    the job's own status is already committed by process_job before this runs."""
+    try:
+        cur = conn.cursor()
+        cur.execute("select business_id from ingestion_jobs where job_id=%s", (job_id,))
+        row = cur.fetchone()
+        if row:
+            run_detection(conn, row[0])
+    except Exception as e:
+        logger.warning("anomaly detection failed for job %s: %s", job_id, type(e).__name__)
 
 def recover_stuck_jobs(conn, minutes=None) -> int:
     """Jobs 'processing' for longer than `minutes` were left by a crashed worker. Their load is all-or-nothing, so they are safe to run again.
@@ -49,6 +66,11 @@ def _give_up(job_id, why):
         pass                                   # database still down: the job stays 'processing' and is put back after the stuck-job limit
     return dict(status="failed", job_id=job_id, loaded=0, skipped=0, issues=[], message=msg)
 
+def _fail_now(job_id, msg):
+    c = connect()
+    c.cursor().execute("update ingestion_jobs set status='failed', message=%s, completed_at=now() where job_id=%s", (msg, job_id))
+    c.commit(); c.close()
+
 def run_job(job_id, max_attempts=None, wait=None, sleep=time.sleep):
     """Process one job with retries for temporary failures. Returns the pipeline result dict."""
     max_attempts = max_attempts or config.WORKER_MAX_ATTEMPTS
@@ -60,12 +82,17 @@ def run_job(job_id, max_attempts=None, wait=None, sleep=time.sleep):
             conn = connect()
             result = process_job(conn, job_id)
             result["attempts"] = attempt
+            if result["status"] in DONE_STATUSES:
+                _run_detection_after_load(conn, job_id)
             return result
         except TEMPORARY as e:
             why = "%s" % (str(e).splitlines()[0] if str(e) else type(e).__name__)
             print("job %s attempt %d/%d: temporary failure: %s" % (job_id, attempt, max_attempts, why), flush=True)
             if attempt < max_attempts:
                 sleep(wait * attempt)
+        except Exception as e:
+            _fail_now(job_id, "internal error: %s" % type(e).__name__)
+            return dict(status="failed", job_id=job_id, loaded=0, skipped=0, issues=[], message=str(e), attempts=attempt)
         finally:
             if conn is not None:
                 try: conn.close()

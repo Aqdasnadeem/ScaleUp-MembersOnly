@@ -25,10 +25,14 @@ function subscribe(listener: () => void) {
   };
 }
 
-// Call after login/logout so the next session never shows the previous business.
+// Call after login/logout, or after anything server-side that changes the business record a
+// mounted Sidebar is already showing (e.g. a plan upgrade) - re-fetches at once if a token is
+// still present, so an already-mounted subscriber (the login page unmounts Sidebar anyway) updates
+// without needing a full page reload.
 export function resetBusiness() {
   requestId += 1;
   setState(IDLE);
+  if (getToken()) loadBusiness();
 }
 
 function loadBusiness() {

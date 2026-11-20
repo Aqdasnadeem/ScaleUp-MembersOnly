@@ -1,6 +1,6 @@
 # Cleaning and transformation rules (ticket P2-13)
 
-Code: `app/cleaning.py` (cell rules) and `app/transform.py` (merge inside the file). Every row of the "Before / After" columns is a test in `tests/test_cleaning.py`.
+Code: `app/cleaning.py` (cell rules) and `app/transform.py` (merge inside the file). Every row of the "Before / After" columns is a test in one of: `tests/test_cleaning.py` (C1–C6, C9), `tests/test_validation.py` (C7, C8), `tests/test_loader.py` (C10: merge, re-upload, expenses), `tests/test_returns_cost_role.py` (C11, C12).
 
 **Date convention (written down as the ticket asks):** dates are read with the business setting `businesses.date_format`, either `DD/MM/YYYY` or `MM/DD/YYYY` (BR-21). `2026-10-03` (ISO) is always accepted. Known limit: if the setting is wrong and every day in the file is 12 or less, nothing can detect it.
 
@@ -26,8 +26,12 @@ Code: `app/cleaning.py` (cell rules) and `app/transform.py` (merge inside the fi
 | C10 | Merge repeated order + product lines inside the file (BR-18): quantity and line total are added, unit price = total / quantity (weighted average); a different date or customer is a bad row | A1 Pen 2 x 10 and A1 Pen 3 x 20 | A1 Pen, qty 5, total 80, price 16.00 | `tests/test_loader.py::test_repeated_lines_merge_with_weighted_average_and_exact_revenue` |
 | C10 | A re-upload of the merged file never doubles the quantity (merge happens in memory, never `quantity = quantity + new` in SQL) | same file twice | qty stays 5 | `test_reupload_of_merged_file_does_not_double_quantities` |
 | C10 | Expenses: identical rows in one file are all kept; the row hash includes the occurrence number (BR-09) | `Chai 500` twice | 2 rows | `test_expenses_identical_rows_both_kept_and_reupload_adds_nothing` |
-| C10 | Inventory: same product and date twice in one file is a bad row (BR-06) | | bad row | `test_inventory_*` |
+| C10 | Inventory: same product and date twice in one file is a bad row (BR-06) | `Mouse, 2026-11-01, stock 20` then `Mouse, 2026-11-01, stock 15` | first line kept (stock 20); the second is a bad row: "same product and date twice in the file" | `test_inventory_*` |
 | C11 | Returns: a sales line with a NEGATIVE quantity is counted in `returned_rows`, not loaded (revenue is gross) and is not a bad row, so it stays outside the 20% limit (bad rows / all rows except returns). Quantity 0 is still a bad row | `A2,Cap,-3,5` | not loaded; job message "1 return lines ... value 15.00" | `tests/test_returns_cost_role.py::test_returns_*`, `test_a_file_with_many_returns_*` |
 | C12 | cost_price is fill-only (BR-23): a different cost in a later file never overwrites the saved one; the job message warns with the number of products | saved 4, new file 5 | cost stays 4; "Warning: 1 products have a different cost" | `test_a_different_cost_keeps_the_saved_one_and_warns` |
+
+**Return shares, in plain words:** the job message shows the share of rows (return lines divided by all lines in the file) and the share of value (value of the returns divided by the value of the valid sales lines plus the returns). Bad rows are not in the value share. Revenue shown is gross, not net: returns are not subtracted.
+
+**Currency:** the currency column (`businesses.currency`, default PKR) is stored only. No conversion is done. When cleaning amounts, the prefixes or suffixes `Rs` (also `Rs.`), `PKR`, `USD`, `$`, `£`, `€` are removed (case-insensitive), along with thousand commas; brackets mean negative.
 
 Revenue is always `SUM(total_amount)`, never quantity x price (BR-20).

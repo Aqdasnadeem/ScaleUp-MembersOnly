@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import UploadResultCard from "@/components/UploadResultCard";
-import { getUpload, listUploads, type UploadJob, type UploadJobDetail } from "@/lib/api";
+import { formatJobStatus, getUpload, listUploads, type UploadJob, type UploadJobDetail } from "@/lib/api";
 import { formatDate } from "@/lib/date";
 import { useBusiness } from "@/hooks/useBusiness";
 
@@ -95,7 +95,7 @@ export default function HistoryPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">{item.upload_type}</td>
-                  <td className="px-4 py-3">{item.status}</td>
+                  <td className="px-4 py-3">{formatJobStatus(item.status)}</td>
                   <td className="px-4 py-3">{item.loaded_rows ?? "—"}</td>
                   <td className="px-4 py-3">{item.rejected_rows ?? "—"}</td>
                   <td className="px-4 py-3">{formatDate(item.created_at, business?.date_format)}</td>
@@ -106,7 +106,7 @@ export default function HistoryPage() {
         </div>
       )}
       {loadingJob && <p role="status" className="text-sm text-[#5B6475]">Loading upload result...</p>}
-      {selectedJob && <UploadResultCard job={selectedJob} status={selectedJob.status} />}
+      {selectedJob && <UploadResultCard key={selectedJob.job_id} job={selectedJob} status={selectedJob.status} />}
     </div>
   );
 }

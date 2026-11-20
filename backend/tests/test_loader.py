@@ -113,3 +113,12 @@ def test_feedback_links_known_product_only(conn, biz):
     process_job(conn, new_job(conn, biz, "sales", H + "A1,03/10/2026,P1,Pen,1,10,\n"))
     r = process_job(conn, new_job(conn, biz, "feedback", "Date,Review,Product\n03/10/2026,Nice,Pen\n03/10/2026,Fine,Ghost\n"))
     assert r["loaded"] == 2 and "does not exist" in r["message"]
+
+def test_feedback_duplicate_is_skipped_on_second_load(conn, biz):
+    process_job(conn, new_job(conn, biz, "sales", H + "A1,03/10/2026,P1,Pen,1,10,\n"))
+    text = "Date,Review,Product\n03/10/2026,Nice,Pen\n03/10/2026,Fine,Ghost\n"
+    r1 = process_job(conn, new_job(conn, biz, "feedback", text))
+    n = count(conn, "feedback", biz)
+    assert r1["loaded"] == 2 and n == 2
+    r2 = process_job(conn, new_job(conn, biz, "feedback", text))                   # the same file again
+    assert r2["loaded"] == 0 and count(conn, "feedback", biz) == n

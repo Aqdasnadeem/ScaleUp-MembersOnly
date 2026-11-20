@@ -8,6 +8,7 @@ Each rule shows the value before cleaning and after cleaning. "Refused" means th
 |---|---|---|---|---|
 | F1 | Review | Control characters removed, repeated spaces collapsed, trimmed. Empty is refused. Max 10,000 characters. | `"  Great   product!\n"` | `Great product!` |
 | F1 | Review | Only spaces | `"   "` | refused: `empty` |
+| F1 | Review | Longer than 10,000 characters | a review of 10,001 characters | refused: `too long (max 10000 characters)` |
 | F2 | Rating | Optional. Whole number from 1 to 5. `3.0` counts as 3. | `"3.0"` | `3` |
 | F2 | Rating | Decimal part that is not zero | `"2.5"` | refused: `not a whole number` |
 | F2 | Rating | Outside 1 to 5 | `"9"` or `"0"` | refused: `must be 1 to 5` |
@@ -15,6 +16,7 @@ Each rule shows the value before cleaning and after cleaning. "Refused" means th
 | F3 | Review ID | Optional. Trimmed. Max 100 characters. Blank means no ID. | `"  R-001 "` / `"   "` | `R-001` / `null` |
 | F4 | Product | Optional. Lowercase and trimmed, same key as sales and inventory (C2). Blank means no product. | `" Blue Pen "` | `blue pen` |
 | F5 | Date | Same date convention as the other uploads (C6, business setting DD/MM/YYYY or MM/DD/YYYY). | `03/10/2026` with DD/MM/YYYY | `2026-10-03` |
+| F6 | Duplicate | Same review ID = one review; no ID and same date and text = one review | `R-1, "a"` then `R-1, "b"` | second line skipped |
 
 ## Duplicates (F6)
 

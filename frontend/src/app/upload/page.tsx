@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
+import Link from "next/link";
 import { AlertCircle, CheckCircle, Download, Loader2, UploadCloud } from "lucide-react";
 import {
   ApiError,
   createUpload,
   downloadTemplate,
+  formatJobStatus,
   getUpload,
   listUploads,
+  planLimitDetail,
   previewUpload,
   type JobStatus,
+  type PlanLimitDetail,
   type PreviewResponse,
   type UploadJob,
   type UploadJobDetail,
@@ -18,6 +22,9 @@ import {
 } from "@/lib/api";
 import { MAX_UPLOAD_MB } from "@/lib/config";
 import UploadResultCard from "@/components/UploadResultCard";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import Button from "@/components/Button";
+import Skeleton from "@/components/Skeleton";
 
 const TYPES: Array<{ id: UploadType; title: string; description: string }> = [
   { id: "sales", title: "Sales", description: "Sales transactions, quantities and revenue." },
@@ -119,6 +126,7 @@ export default function UploadPage() {
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [snapshotDate, setSnapshotDate] = useState("");
   const [error, setError] = useState("");
+  const [planLimit, setPlanLimit] = useState<PlanLimitDetail | null>(null);
   const [notice, setNotice] = useState("");
   const [jobId, setJobId] = useState<string | number | null>(null);
   const [job, setJob] = useState<UploadJobDetail | null>(null);
@@ -241,6 +249,7 @@ export default function UploadPage() {
     if (!file || !preview) return;
     const current = ++requestId.current;
     setError("");
+    setPlanLimit(null);
     setNotice("");
     setDuplicateOpen(false);
     setPhase("uploading");
@@ -270,10 +279,18 @@ export default function UploadPage() {
       }
     } catch (reason) {
       if (current !== requestId.current) return;
-      setError(errorText(reason));
+      const limit = planLimitDetail(reason);
+      setPlanLimit(limit);
+      setError(
+        limit
+          ? `You've used all ${limit.limit} uploads included in the ${limit.plan === "free" ? "Free" : "Pro"} plan this month.`
+          : errorText(reason),
+      );
       setPhase("ready");
     }
   };
+
+  const { run: runSubmit, loading: submitting } = useAsyncAction(submit);
 
   const handleDownloadTemplate = async () => {
     setError("");
@@ -369,7 +386,18 @@ export default function UploadPage() {
         {error && (
           <div role="alert" className="mt-4 flex gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-900">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-            <p>{error}</p>
+            <p>
+              {error}
+              {planLimit && (
+                <>
+                  {" "}
+                  <Link href="/billing" className="font-bold underline underline-offset-2">
+                    Upgrade your plan
+                  </Link>
+                  .
+                </>
+              )}
+            </p>
           </div>
         )}
         {notice && (
@@ -447,15 +475,14 @@ export default function UploadPage() {
 
         {preview && (
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void submit()}
+            <Button
+              onClick={() => void runSubmit()}
               disabled={!canUpload}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#1F2A44] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#2B3A5E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#88682A] disabled:cursor-not-allowed disabled:opacity-50"
+              loading={submitting}
             >
               <UploadCloud className="h-4 w-4" aria-hidden="true" />
-              {phase === "uploading" ? "Uploading..." : "Upload"}
-            </button>
+              Upload
+            </Button>
             {missingRequired.length > 0 && phase === "ready" && (
               <p className="text-xs text-[#5B6475]">Match every required field to continue.</p>
             )}
@@ -464,13 +491,19 @@ export default function UploadPage() {
       </section>
 
       {(phase === "tracking" || job) && (
-        <UploadResultCard job={job} status={job?.status ?? "pending"} />
+        <UploadResultCard key={job?.job_id ?? "none"} job={job} status={job?.status ?? "pending"} />
       )}
 
       <section aria-labelledby="recent-heading" className="rounded-2xl border border-[#E8DCC8] bg-white p-5 sm:p-6">
         <h2 id="recent-heading" className="text-lg font-bold text-[#1F2A44]">Recent uploads</h2>
         {recent === null ? (
-          <p role={recentError ? "alert" : "status"} className="mt-2 text-sm text-[#5B6475]">{recentError || "Loading..."}</p>
+          recentError ? (
+            <p role="alert" className="mt-2 text-sm text-[#5B6475]">{recentError}</p>
+          ) : (
+            <div className="mt-3 space-y-2" role="status" aria-label="Loading recent uploads">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+            </div>
+          )
         ) : recent.length === 0 ? (
           <p className="mt-2 text-sm text-[#5B6475]">No uploads yet.</p>
         ) : (
@@ -491,7 +524,7 @@ export default function UploadPage() {
                   <tr key={String(item.job_id)} className="border-b border-[#F1E8D8]">
                     <td className="py-2 pr-4">{item.file_name}</td>
                     <td className="py-2 pr-4 capitalize">{item.upload_type}</td>
-                    <td className="py-2 pr-4">{item.status}</td>
+                    <td className="py-2 pr-4">{formatJobStatus(item.status)}</td>
                     <td className="py-2 pr-4">{item.loaded_rows ?? 0}</td>
                     <td className="py-2 pr-4">{item.rejected_rows ?? 0}</td>
                     <td className="py-2 whitespace-nowrap">{item.created_at ? item.created_at.slice(0, 10) : ""}</td>
@@ -508,18 +541,14 @@ export default function UploadPage() {
           <div role="dialog" aria-modal="true" aria-labelledby="duplicate-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 id="duplicate-title" className="text-lg font-bold text-[#1F2A44]">This exact file was already loaded.</h2>
             <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                autoFocus
-                onClick={() => void submit("skip")}
-                className="min-h-11 rounded-xl bg-[#1F2A44] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#2B3A5E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#88682A]"
-              >
+              <Button autoFocus loading={submitting} onClick={() => void runSubmit("skip")}>
                 Skip
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => setDuplicateOpen(false)}
-                className="min-h-11 rounded-xl border border-[#D5C3A5] px-5 py-2.5 text-sm font-bold text-[#1F2A44]"
+                disabled={submitting}
+                className="min-h-11 rounded-xl border border-[#D5C3A5] px-5 py-2.5 text-sm font-bold text-[#1F2A44] disabled:opacity-60"
               >
                 Cancel
               </button>

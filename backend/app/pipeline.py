@@ -8,6 +8,7 @@ from decimal import Decimal
 import sys
 import psycopg2
 from . import cleaning as C, config
+from .billing import effective_plan
 from .mapping import check_mapping
 from .schemas import validate_rows
 from .transform import transform
@@ -39,12 +40,12 @@ def _fail(conn, job, msg, total=0, issues=(), returned=0):
 
 def process_job(conn, job_id, replace_job=None):
     cur = conn.cursor()
-    cur.execute("""select j.business_id, j.upload_type, j.snapshot_date, b.date_format
+    cur.execute("""select j.business_id, j.upload_type, j.snapshot_date, b.date_format, b.plan, b.plan_expires_at
                    from ingestion_jobs j join businesses b using (business_id) where j.job_id=%s""", (job_id,))
     row = cur.fetchone()
     if not row:
         raise LookupError("job not found")
-    biz, kind, snapshot, date_format = row
+    biz, kind, snapshot, date_format, plan, plan_expires_at = row
     cur.execute("select mapping from column_mappings where business_id=%s and upload_type=%s", (biz, kind))
     m = cur.fetchone()
     mapping = m[0] if m else {}
@@ -57,6 +58,12 @@ def process_job(conn, job_id, replace_job=None):
         header, norm, recs, warn = C.read_csv(raw)
     except (C.FileProblem, FileNotFoundError) as e:
         return _fail(conn, job_id, str(e) if isinstance(e, C.FileProblem) else "uploaded file is missing on the server")
+    # Plan limit (Feature 2): checked here, before any validation work, so an oversize file never
+    # partially loads and never retries - same one-shot failure as a bad CSV.
+    plan_now = effective_plan(plan, plan_expires_at)
+    max_rows = config.PLAN_LIMITS[plan_now]["max_rows_per_file"]
+    if len(recs) > max_rows:
+        return _fail(conn, job_id, "this file has %d rows; the %s plan allows at most %d rows per file" % (len(recs), plan_now, max_rows), len(recs))
     problems = check_mapping(kind, mapping, header, snapshot)
     if problems:
         return _fail(conn, job_id, "; ".join(problems))
@@ -80,7 +87,14 @@ def process_job(conn, job_id, replace_job=None):
         skipped = len(rows) - loaded
         notes = list(warn)
         if returned:
-            notes.append("%d return lines (negative quantity, value %s) counted separately and not loaded; revenue is gross" % (returned, res.returned_value.quantize(Decimal("0.01"))))
+            # Return shares (team decision, sir: the row % and the value % must match the slide).
+            # share_by_rows = returned lines / all data lines (returns included).
+            # share_by_value uses gross value of all lines (returns included) as the denominator.
+            # Gross value here = line totals of the valid sales lines + the value of the returns. Bad rows have no reliable total, so they are not in it.
+            gross = sum((m.total or Decimal("0")) for _, m in res.good if kind == "sales") + res.returned_value
+            rows_pct = (Decimal(returned) * 100 / total).quantize(Decimal("0.01")) if total else Decimal("0.00")
+            value_pct = (res.returned_value * 100 / gross).quantize(Decimal("0.01")) if gross else Decimal("0.00")
+            notes.append("%d return lines (negative quantity, value %s) counted separately and not loaded; revenue is gross; share %s%% of rows, %s%% of value" % (returned, res.returned_value.quantize(Decimal("0.01")), rows_pct, value_pct))
         if conflicts:
             notes.append("Warning: %d products have a different cost in this file; the saved cost was kept" % conflicts)
         if skipped:

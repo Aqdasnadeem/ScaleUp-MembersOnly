@@ -1,5 +1,9 @@
-import type { JobStatus, UploadJobDetail } from "@/lib/api";
-import { TriangleAlert } from "lucide-react";
+import { useState } from "react";
+import { formatJobStatus, type JobStatus, type UploadJobDetail } from "@/lib/api";
+import { Loader2, TriangleAlert } from "lucide-react";
+
+const TERMINAL_STATUSES: JobStatus[] = ["completed", "completed_with_warnings", "failed", "replaced"];
+const PAGE_SIZE = 50;
 
 interface UploadResultCardProps {
   job: UploadJobDetail | null;
@@ -20,11 +24,27 @@ export default function UploadResultCard({ job, status }: UploadResultCardProps)
   const errors = job?.error_report ?? [];
   const isComplete = status === "completed" || status === "completed_with_warnings";
   const isFailure = status === "failed";
+  const isTerminal = TERMINAL_STATUSES.includes(status);
+
+  // Stored count is what the API actually sent (capped server-side at ERROR_REPORT_MAX); the true
+  // rejected count can be higher, so the two are tracked separately rather than assumed equal.
+  const storedCount = errors.length;
+  const totalRejected = job?.rejected_rows ?? storedCount;
+  const isCapped = totalRejected > storedCount;
+
+  // The parent keys this component by job id, so a different job remounts it and this starts fresh.
+  const [shown, setShown] = useState(Math.min(PAGE_SIZE, storedCount));
+  const visible = errors.slice(0, shown);
+  const hasMore = shown < storedCount;
+  const showHeader = hasMore || isCapped;
 
   return (
     <section aria-labelledby="result-heading" className="rounded-2xl border border-[#E8DCC8] bg-white p-5 sm:p-6">
       <h2 id="result-heading" className="text-lg font-bold text-[#1F2A44]">Upload result</h2>
-      <p role="status" className="mt-2 text-sm font-semibold text-[#1F2A44]">{status}</p>
+      <p role="status" className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#1F2A44]">
+        {!isTerminal && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+        {formatJobStatus(status)}
+      </p>
       {isComplete && !isFailure && (
         <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-[#15803D]">
           {status === "completed" && (job?.loaded_rows ?? 0) === 0 && (job?.skipped_rows ?? 0) > 0
@@ -39,14 +59,31 @@ export default function UploadResultCard({ job, status }: UploadResultCardProps)
         </div>
       )}
       {errors.length > 0 && (
-        <ul className="mt-4 space-y-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {errors.map((item, index) => (
-            <li key={`${item.row}-${index}`} className="flex items-start gap-2">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>Row {item.row}: {item.reason} ({item.column ?? ""})</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {showHeader && (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-700">
+              Showing first {Math.min(shown, storedCount)} of {storedCount} rejected row{storedCount === 1 ? "" : "s"}
+              {isCapped && ` — only the first ${storedCount} are stored; total rejected ${totalRejected}`}
+            </p>
+          )}
+          <ul className="max-h-96 space-y-2 overflow-y-auto">
+            {visible.map((item, index) => (
+              <li key={`${item.row}-${index}`} className="flex items-start gap-2">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="break-words">Row {item.row}: {item.reason} ({item.column ?? ""})</span>
+              </li>
+            ))}
+          </ul>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setShown((n) => Math.min(n + PAGE_SIZE, storedCount))}
+              className="mt-3 text-xs font-semibold text-red-700 underline underline-offset-2 hover:text-red-900"
+            >
+              Show more
+            </button>
+          )}
+        </div>
       )}
       <dl className="mt-4 grid gap-4 sm:grid-cols-3">
         {COUNTS.map(({ key, label }) => (
@@ -60,28 +97,6 @@ export default function UploadResultCard({ job, status }: UploadResultCardProps)
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#72571F]">Message</h3>
         <p className="mt-1 text-sm leading-6 text-[#1F2A44]">{job?.message ?? "—"}</p>
       </div>
-      {errors.length > 0 && (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#E8DCC8] text-xs uppercase tracking-wide text-[#72571F]">
-                <th scope="col" className="py-2 pr-4">Row</th>
-                <th scope="col" className="py-2 pr-4">Column</th>
-                <th scope="col" className="py-2">Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {errors.map((item, index) => (
-                <tr key={`${item.row}-${index}`} className="border-b border-[#F1E8D8] align-top">
-                  <td className="py-2 pr-4 font-mono">{item.row}</td>
-                  <td className="py-2 pr-4">{item.column ?? ""}</td>
-                  <td className="py-2">{item.reason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </section>
   );
 }

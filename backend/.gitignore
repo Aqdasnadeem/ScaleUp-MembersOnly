@@ -4,9 +4,12 @@
 !.env.example
 # uploaded customer files (EI-07 keeps them on disk, not in git)
 uploads/
+# local DB dumps/backups: never commit
+*.dump
 # Python
 __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
 venv/
+*.log

@@ -6,7 +6,7 @@ import Header from "./Header";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSidebarPreference } from "@/hooks/useSidebarPreference";
-import { getToken } from "@/lib/api";
+import { getRole, getToken } from "@/lib/api";
 
 const subscribeNoop = () => () => {};
 
@@ -62,17 +62,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    const homeFor = () => (getRole() === "super_admin" ? "/admin" : "/dashboard");
     if (pathname === "/" && getToken()) {
-      router.replace("/dashboard");
+      router.replace(homeFor());
     } else if (isProtectedPage) {
       if (!getToken()) {
         const returnTo = `${window.location.pathname}${window.location.search}`;
         router.replace(`/login?next=${encodeURIComponent(returnTo)}`);
+      } else if (pathname.startsWith("/admin") && getRole() !== "super_admin") {
+        // UX only: the real protection is the 403 every /admin API route already returns.
+        router.replace("/dashboard");
       }
     } else if (isAuthPage && getToken()) {
-      router.replace("/dashboard");
+      router.replace(homeFor());
     } else if (isDemoPage && getToken()) {
-      router.replace("/dashboard");
+      router.replace(homeFor());
     }
   }, [isAuthPage, isDemoPage, isProtectedPage, pathname, router]);
 

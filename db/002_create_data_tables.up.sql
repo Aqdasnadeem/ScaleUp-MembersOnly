@@ -1,75 +1,18 @@
--- 002: business data tables (every row has business_id and job_id)
+-- 002 (P2-07): expenses, feedback, column_mappings, rejected_rows.
+-- Depends on 001 (P2-06): businesses, ingestion_jobs, products.
 BEGIN;
 
--- Built by the ETL from customer ids in sales
-CREATE TABLE customers (
-    customer_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
+-- Saved column mapping per business and file type. The UNIQUE (business_id, upload_type) is the ON CONFLICT target in routes_uploads.py.
+CREATE TABLE column_mappings (
+    mapping_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     business_id UUID NOT NULL,
-    job_id UUID NOT NULL,
-    customer_key VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    CONSTRAINT pk_customers PRIMARY KEY (customer_id),
-    CONSTRAINT fk_customers_business_id FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-    CONSTRAINT fk_customers_job_id FOREIGN KEY (job_id) REFERENCES ingestion_jobs(job_id),
-    CONSTRAINT uq_customers_business_key UNIQUE (business_id, customer_key)
-);
-
--- Built by the ETL from sales and inventory files
-CREATE TABLE products (
-    product_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
-    business_id UUID NOT NULL,
-    job_id UUID NOT NULL,
-    product_key VARCHAR(255) NOT NULL,
-    product_name VARCHAR(255),
-    category VARCHAR(100),
-    cost_price NUMERIC(12,2),
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    CONSTRAINT pk_products PRIMARY KEY (product_id),
-    CONSTRAINT fk_products_business_id FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-    CONSTRAINT fk_products_job_id FOREIGN KEY (job_id) REFERENCES ingestion_jobs(job_id),
-    CONSTRAINT uq_products_business_key UNIQUE (business_id, product_key),
-    CONSTRAINT chk_products_cost CHECK (cost_price IS NULL OR cost_price >= 0)
-);
-
--- One row per order line
-CREATE TABLE sales (
-    sale_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
-    business_id UUID NOT NULL,
-    job_id UUID NOT NULL,
-    product_id BIGINT NOT NULL,
-    customer_id BIGINT,
-    order_id VARCHAR(100) NOT NULL,
-    sale_date DATE NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price NUMERIC(12,2) NOT NULL,
-    total_amount NUMERIC(14,2) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    CONSTRAINT pk_sales PRIMARY KEY (sale_id),
-    CONSTRAINT fk_sales_business_id FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-    CONSTRAINT fk_sales_job_id FOREIGN KEY (job_id) REFERENCES ingestion_jobs(job_id),
-    CONSTRAINT fk_sales_product_id FOREIGN KEY (product_id) REFERENCES products(product_id),
-    CONSTRAINT fk_sales_customer_id FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-    CONSTRAINT uq_sales_business_order_product UNIQUE (business_id, order_id, product_id),
-    CONSTRAINT chk_sales_quantity CHECK (quantity > 0),
-    CONSTRAINT chk_sales_unit_price CHECK (unit_price >= 0),
-    CONSTRAINT chk_sales_total CHECK (total_amount >= 0)
-);
-
--- Stock snapshot per product and date
-CREATE TABLE inventory (
-    inventory_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
-    business_id UUID NOT NULL,
-    job_id UUID NOT NULL,
-    product_id BIGINT NOT NULL,
-    snapshot_date DATE NOT NULL,
-    stock_quantity INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    CONSTRAINT pk_inventory PRIMARY KEY (inventory_id),
-    CONSTRAINT fk_inventory_business_id FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-    CONSTRAINT fk_inventory_job_id FOREIGN KEY (job_id) REFERENCES ingestion_jobs(job_id),
-    CONSTRAINT fk_inventory_product_id FOREIGN KEY (product_id) REFERENCES products(product_id),
-    CONSTRAINT uq_inventory_business_product_date UNIQUE (business_id, product_id, snapshot_date),
-    CONSTRAINT chk_inventory_stock CHECK (stock_quantity >= 0)
+    upload_type VARCHAR(20) NOT NULL,
+    mapping JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    CONSTRAINT pk_column_mappings PRIMARY KEY (mapping_id),
+    CONSTRAINT fk_column_mappings_business_id FOREIGN KEY (business_id) REFERENCES businesses(business_id),
+    CONSTRAINT uq_mappings_business_type UNIQUE (business_id, upload_type),
+    CONSTRAINT chk_mappings_type CHECK (upload_type IN ('sales', 'inventory', 'expenses', 'feedback'))
 );
 
 -- One row per expense
@@ -90,7 +33,7 @@ CREATE TABLE expenses (
     CONSTRAINT chk_expenses_amount CHECK (amount >= 0)
 );
 
--- One row per customer review
+-- One row per customer review. product_id is NULL when the review names no known product.
 CREATE TABLE feedback (
     feedback_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     business_id UUID NOT NULL,
@@ -110,7 +53,8 @@ CREATE TABLE feedback (
     CONSTRAINT chk_feedback_rating CHECK (rating IS NULL OR rating BETWEEN 1 AND 5)
 );
 
--- One row per bad row of an upload, with the reason
+-- One row per bad row of an upload, with the reason. At most ERROR_REPORT_MAX rows per job (config.py);
+-- the exact count is ingestion_jobs.rejected_rows.
 CREATE TABLE rejected_rows (
     rejected_id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     business_id UUID NOT NULL,

@@ -16,7 +16,7 @@ GOOD = H + "A1,03/10/2026,P1,Pen,2,10,C1\nA2,03/10/2026,P2,Cap,1,5,\n"
 @pytest.fixture()
 def client(): return TestClient(app)
 @pytest.fixture()
-def auth(biz): return {"Authorization": "Bearer " + make_token(biz)}
+def auth(biz, conn): return {"Authorization": "Bearer " + make_token(conn, biz)}
 
 def post(client, auth, text=GOOD, name="sales.csv", **form):
     form.setdefault("upload_type", "sales")
@@ -50,7 +50,7 @@ def test_no_token_or_bad_token_is_401(client):
 def test_other_business_cannot_see_the_job(client, auth, conn):
     job = post(client, auth).json()["job_id"]
     c = conn.cursor(); c.execute("insert into businesses(business_name) values('other') returning business_id"); other = c.fetchone()[0]; conn.commit()
-    r = client.get("/uploads/" + job, headers={"Authorization": "Bearer " + make_token(other)})
+    r = client.get("/uploads/" + job, headers={"Authorization": "Bearer " + make_token(conn, other)})
     assert r.status_code == 404
 def test_business_id_in_the_request_is_ignored(client, auth, conn, biz):
     c = conn.cursor(); c.execute("insert into businesses(business_name) values('victim') returning business_id"); victim = c.fetchone()[0]; conn.commit()
@@ -181,7 +181,7 @@ def test_history_lists_only_my_jobs_newest_first_without_the_error_report(client
     first = post(client, auth, name="one.csv").json()["job_id"]
     second = post(client, auth, GOOD.replace("A1", "Z1").replace("A2", "Z2"), name="two.csv").json()["job_id"]
     c = conn.cursor(); c.execute("insert into businesses(business_name) values('other') returning business_id"); other = c.fetchone()[0]; conn.commit()
-    post(client, {"Authorization": "Bearer " + make_token(other)}, name="theirs.csv")
+    post(client, {"Authorization": "Bearer " + make_token(conn, other)}, name="theirs.csv")
     items = client.get("/uploads", headers=auth).json()["items"]
     assert [i["job_id"] for i in items] == [second, first]
     assert "error_report" not in items[0] and items[0]["file_name"] == "two.csv" and items[0]["status"] == "pending"
@@ -194,3 +194,8 @@ def test_sku_id_and_current_stock_headers_are_recognised():
     from app.mapping import suggest_mapping
     m = suggest_mapping(["sku_id", "product_name", "current_stock", "snapshot_date"], "inventory")
     assert m["product_code"] == "sku_id" and m["stock_quantity"] == "current_stock"
+
+def test_sales_upload_missing_required_columns_is_rejected_with_422(client, auth):
+    r = post(client, auth, "order_id,wrong_column\nA1,P1\n")   # sales is the default upload type
+    assert r.status_code == 422
+    assert "not mapped" in r.json()["detail"][0]

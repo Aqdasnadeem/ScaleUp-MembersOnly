@@ -15,17 +15,18 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from fastapi.responses import JSONResponse, Response
 from . import cleaning as C, config
 from .auth import current_business_id
-from .db import connect
+from .billing import enforce_upload_limit
+from .db import pool_connect, pool_release
 from .mapping import FIELDS, REQUIRED, TEMPLATES, check_mapping, suggest_mapping
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 def get_conn():
-    conn = connect()
+    conn = pool_connect()
     try:
         yield conn
     finally:
-        conn.close()
+        pool_release(conn)
 
 async def _read_checked(file: UploadFile, upload_type: str):
     """FR-UP-02: wrong type or too big is refused before anything is saved."""
@@ -65,7 +66,7 @@ async def preview(file: UploadFile = File(...), upload_type: str = Form(...), bi
             "saved_mapping": merged if valid else None, "fields": FIELDS[upload_type], "required": REQUIRED[upload_type],
             "needs_snapshot_date": upload_type == "inventory"}
 
-@router.post("", status_code=202)
+@router.post("", status_code=202, dependencies=[Depends(enforce_upload_limit)])
 async def create_upload(file: UploadFile = File(...), upload_type: str = Form(...), mapping: Optional[str] = Form(None),
                         snapshot_date: Optional[dt.date] = Form(None), on_duplicate: Optional[str] = Form(None),
                         biz: uuid.UUID = Depends(current_business_id), conn=Depends(get_conn)):

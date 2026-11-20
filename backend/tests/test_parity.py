@@ -31,6 +31,9 @@ def test_same_result_as_prototype(conn, path):
     ids = []
     for _ in range(2):
         cur.execute("insert into businesses(business_name,date_format) values('P','DD/MM/YYYY') returning business_id"); ids.append(cur.fetchone()[0])
+    # This safety net is about ETL/loader parity, not plan limits - perf_100k.csv (100,000 rows)
+    # would otherwise be refused outright by the new free-plan 10,000-row-per-file limit (Feature 2).
+    cur.execute("update businesses set plan='pro' where business_id=%s", (ids[1],))
     conn.commit()
     snap = dt.date(2026, 9, 1) if kind == "inventory" else None
     try: hdr = etl.read_file(path)[1]

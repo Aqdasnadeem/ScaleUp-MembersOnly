@@ -28,6 +28,19 @@ def test_returns_are_counted_apart_not_loaded_and_not_bad_rows(conn, biz):
     assert "2 return lines" in msg and "value 25.00" in msg and "gross" in msg                                  # 3*5 + 1*10
     c = conn.cursor(); c.execute("select sum(total_amount) from sales where business_id=%s", (biz,)); assert c.fetchone()[0] == Decimal("20.00")   # gross revenue
 
+def test_return_share_by_rows_and_by_value_in_job_message(conn, biz):
+    """10 lines, 2 of them returns (none bad).
+    Rows: 2 returns / 10 lines = 20.00%.
+    Value: returns = 1 x 10 + 4 x 10 = 50. Gross value of all lines = 8 good lines x 10 (= 80) + 50 = 130. 50 / 130 = 38.46%."""
+    rows = "".join("G%d,03/10/2026,P%d,Item,1,10,\n" % (i, i) for i in range(8))
+    rows += "R1,03/10/2026,P9,Item,-1,10,\n" + "R2,03/10/2026,P10,Item,-4,10,\n"
+    j = new_job(conn, biz, "sales", H + rows)
+    r = process_job(conn, j)
+    assert r["status"] == "completed" and r["returned"] == 2
+    _, total, _, _, _, msg = job_row(conn, j)
+    assert total == 10
+    assert "20.00% of rows" in msg and "38.46% of value" in msg
+
 def test_a_file_with_many_returns_does_not_fail_the_20_percent_rule(conn, biz):
     """1 bad row + 4 returns + 5 good: the old rule saw 5 bad of 10 = 50% -> failed. Now 1 bad of 6 non-return rows = 16.7% -> loads."""
     rows = "".join("G%d,03/10/2026,P%d,Item,1,10,\n" % (i, i) for i in range(5))
@@ -69,16 +82,24 @@ def test_no_warning_when_the_cost_is_the_same_or_new(conn, biz):
 def client(): return TestClient(app)
 
 def test_the_job_remembers_where_its_file_is_kept(client, biz, conn):
-    auth = {"Authorization": "Bearer " + make_token(biz)}
+    auth = {"Authorization": "Bearer " + make_token(conn, biz)}
     job = client.post("/uploads", headers=auth, files={"file": ("s.csv", (H + "A1,03/10/2026,P1,Pen,1,10,\n").encode(), "text/csv")}, data={"upload_type": "sales"}).json()["job_id"]
     c = conn.cursor(); c.execute("select file_key from ingestion_jobs where job_id=%s", (job,))
     assert c.fetchone()[0] == job + ".csv"
     assert process_job(conn, uuid.UUID(job))["status"] == "completed"                            # the worker finds the file through file_key
     assert client.get("/uploads/" + job, headers=auth).json()["returned_rows"] == 0
 
-def test_users_table_has_no_role_column(conn):
-    c = conn.cursor(); c.execute("select 1 from information_schema.columns where table_name='users' and column_name='role'")
-    assert c.fetchone() is None                                                                    # one role only in FYP-1 (sir, 5 Nov)
+def test_users_table_has_a_role_column_for_the_super_admin_ticket(conn):
+    # Sir's 5 Nov rule was "one role only, no role column" (FYP-1). The super admin ticket (sir,
+    # later) explicitly supersedes that: users now has role IN ('business_user','super_admin'),
+    # default 'business_user', added in migration 005. This test asserts the NEW rule, not the old one.
+    c = conn.cursor()
+    c.execute(
+        "select column_default from information_schema.columns "
+        "where table_name='users' and column_name='role'"
+    )
+    row = c.fetchone()
+    assert row is not None and row[0] == "'business_user'::text"
 
 # ---- rejected_rows (sir, P2-07): one row per bad row, with row number, column and reason
 def test_bad_rows_are_saved_in_rejected_rows_and_match_the_report(conn, biz):

@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Lock, Mail, Eye, EyeOff, Store } from "lucide-react";
 import ScaleUpLogo from "@/components/ScaleUpLogo";
-import { ApiError, login, setToken, signup } from "@/lib/api";
+import { ApiError, login, setRole, setToken, signup } from "@/lib/api";
 import { resetBusiness } from "@/hooks/useBusiness";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import Button from "@/components/Button";
 
 type AuthMode = "signin" | "signup";
 type FieldErrors = Partial<Record<"email" | "password" | "businessName", string>>;
@@ -20,7 +22,6 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const isSignUp = mode === "signup";
@@ -28,7 +29,28 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
     setFieldErrors((current) => ({ ...current, [field]: message || undefined }));
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const { run: runSubmit, loading } = useAsyncAction(async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    try {
+      const result = isSignUp
+        ? await signup(businessName.trim(), normalizedEmail, password)
+        : await login(normalizedEmail, password);
+      setToken(result.access_token);
+      setRole(result.role);
+      resetBusiness();
+      router.replace(result.role === "super_admin" ? "/admin" : "/dashboard");
+    } catch (reason) {
+      if (reason instanceof ApiError) {
+        if (reason.status === 409) setFieldErrors({ email: reason.message });
+        else if (reason.status === 401) setError("Incorrect email or password");
+        else setError(reason.message);
+      } else {
+        setError("The request could not be completed. Try again.");
+      }
+    }
+  });
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     const nextErrors: FieldErrors = {};
@@ -41,27 +63,8 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
       nextErrors.password = "Enter your password.";
     }
     setFieldErrors(nextErrors);
-    if (Object.keys(nextErrors).length || loading) return;
-
-    setLoading(true);
-    try {
-      const result = isSignUp
-        ? await signup(businessName.trim(), normalizedEmail, password)
-        : await login(normalizedEmail, password);
-      setToken(result.access_token);
-      resetBusiness();
-      router.replace("/dashboard");
-    } catch (reason) {
-      if (reason instanceof ApiError) {
-        if (reason.status === 409) setFieldErrors({ email: reason.message });
-        else if (reason.status === 401) setError("Incorrect email or password");
-        else setError(reason.message);
-      } else {
-        setError("The request could not be completed. Try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    if (Object.keys(nextErrors).length) return;
+    void runSubmit();
   };
 
   const onTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -86,7 +89,7 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
         <div className="fixed inset-y-0 left-0 z-0 hidden w-1/2 flex-col justify-center gap-16 bg-[#1F2A44] p-10 text-[#E8DCC8] md:flex lg:p-14">
           <Link href="/" aria-label="ScaleUp home" className="inline-flex w-fit items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#E0C788]">
             <ScaleUpLogo size="lg" preload />
-            <span className="text-3xl font-extrabold tracking-tight text-white">ScaleUp</span>
+            <span className="text-4xl font-extrabold tracking-tight text-white">ScaleUp</span>
           </Link>
           <div className="max-w-xl">
             <p className="text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-5xl">
@@ -115,7 +118,7 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
         <div className="mb-6 flex w-full max-w-xl items-center gap-3 md:hidden">
           <Link href="/" aria-label="ScaleUp home" className="inline-flex items-center gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#88682A]">
             <ScaleUpLogo size="md" preload />
-            <span className="text-2xl font-extrabold tracking-tight text-[#1F2A44]">ScaleUp</span>
+            <span className="text-3xl font-extrabold tracking-tight text-[#1F2A44]">ScaleUp</span>
           </Link>
         </div>
         <div className="w-full max-w-xl rounded-2xl border border-[#D5C3A5] bg-white p-5 shadow-sm sm:p-8 lg:p-10">
@@ -254,14 +257,10 @@ function AuthFormContent({ mode }: { mode: AuthMode }) {
             </div>
 
             {error && <p role="alert" aria-live="polite" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1F2A44] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#2B3A5E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#88682A] disabled:cursor-wait disabled:opacity-60"
-            >
-              {loading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}
-              {!loading && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
-            </button>
+            <Button type="submit" loading={loading} className="min-h-12 w-full">
+              {isSignUp ? "Create account" : "Sign in"}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
           </form>
 
           {!isSignUp && (

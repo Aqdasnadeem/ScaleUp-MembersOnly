@@ -13,14 +13,14 @@ def make_job(client_post, text=GOOD):
     return client_post(text)
 
 @pytest.fixture()
-def submit(biz):
+def submit(biz, conn):
     """Create a pending job the way POST /uploads does (row + file on disk)."""
     import os
     from app import config
     from tests.conftest import make_token
     from fastapi.testclient import TestClient
     from app.main import app
-    c = TestClient(app); h = {"Authorization": "Bearer " + make_token(biz)}
+    c = TestClient(app); h = {"Authorization": "Bearer " + make_token(conn, biz)}
     def go(text=GOOD, name="s.csv"):
         r = c.post("/uploads", headers=h, files={"file": (name, text.encode(), "text/csv")}, data={"upload_type": "sales"})
         assert r.status_code == 202, r.text
@@ -61,6 +61,16 @@ def test_bad_csv_fails_at_once_without_retries(conn, submit, monkeypatch):
     job = submit(H + "A1,03/10/2026,P1,Pen,2,10,C1\nA2,31/02/2026,P2,Cap,1,5,C1\nA3,not a date,P3,Mug,1,5,C1\n")   # 2 of 3 rows bad: more than 20%
     r = worker.run_once(sleep=lambda s: pytest.fail("must not wait: a bad CSV is not retried"))
     assert r["status"] == "failed" and r["attempts"] == 1 and len(calls) == 1
+    assert status(conn, job)[0] == "failed" and sales_rows(conn, job) == 0
+
+def test_missing_upload_file_fails_at_once_and_saves_nothing(conn, submit):
+    import os
+    from app import config
+    drain(conn)
+    job = submit(GOOD)                                   # upload passes, job is created
+    os.remove(os.path.join(config.UPLOAD_DIR, "%s.csv" % job))   # worker cannot read the file
+    r = worker.run_once(sleep=lambda s: pytest.fail("must not wait: an unreadable file is not retried"))
+    assert r["status"] == "failed" and r["attempts"] == 1
     assert status(conn, job)[0] == "failed" and sales_rows(conn, job) == 0
 
 def test_temporary_failure_is_retried_and_rows_are_not_duplicated(conn, submit, monkeypatch):
@@ -142,6 +152,42 @@ def test_get_upload_shows_loaded_skipped_and_rejected(conn, submit, biz):
     job = submit(H + "A1,03/10/2026,P1,Pen,2,10,C1\n" + "".join("A%d,03/10/2026,P%d,Item %d,1,5,C1\n" % (i, i, i) for i in range(2, 6)) + "A6,not-a-date,P6,Cap,1,5,C1\n", "two.csv")
     r = worker.run_once()
     assert r["status"] == "completed_with_warnings"
-    body = TestClient(app).get("/uploads/%s" % job, headers={"Authorization": "Bearer " + make_token(biz)}).json()
+    body = TestClient(app).get("/uploads/%s" % job, headers={"Authorization": "Bearer " + make_token(conn, biz)}).json()
     assert (body["loaded_rows"], body["skipped_rows"], body["rejected_rows"]) == (4, 1, 1)
     assert body["total_rows"] == 6
+
+# P2-29 (sir, 18 Nov): the worker runs anomaly detection for a job's business right after a
+# successful load. 14 varying baseline days + 1 huge spike day, same shape as test_anomalies.py.
+def spike_sales_csv():
+    qtys = [1, 2, 3, 4] * 4
+    rows = ["B%d,%02d/01/2026,P1,Pen,%d,10,C1" % (i, i + 1, qtys[i]) for i in range(14)]
+    rows.append("SPIKE,29/01/2026,P1,Pen,50,10,C1")
+    return H + "\n".join(rows) + "\n"
+
+def test_worker_triggers_anomaly_detection_after_a_completed_load(conn, biz, submit):
+    drain(conn)
+    job = submit(spike_sales_csv())
+    r = worker.run_once()
+    assert r["status"] == "completed"
+    cur = conn.cursor()
+    cur.execute("select anomaly_type, metric_date, observed_value from anomalies where business_id=%s", (biz,))
+    found = cur.fetchall(); conn.commit()
+    assert len(found) == 1
+    assert found[0][0] == "sales" and found[0][1].isoformat() == "2026-01-29" and float(found[0][2]) == 500.0
+
+def test_detector_error_after_load_does_not_change_job_status(conn, submit, monkeypatch):
+    drain(conn)
+    monkeypatch.setattr(worker, "run_detection", lambda c, b: (_ for _ in ()).throw(RuntimeError("boom")))
+    job = submit()
+    r = worker.run_once()
+    assert r["status"] == "completed"                      # the load result is unaffected by the detector failing
+    assert status(conn, job)[0] == "completed"
+
+def test_failed_job_does_not_trigger_anomaly_detection(conn, submit, monkeypatch):
+    drain(conn)
+    calls = []
+    monkeypatch.setattr(worker, "run_detection", lambda c, b: calls.append(b))
+    job = submit(H + "A1,03/10/2026,P1,Pen,2,10,C1\nA2,31/02/2026,P2,Cap,1,5,C1\nA3,not a date,P3,Mug,1,5,C1\n")   # 2 of 3 rows bad: more than 20%
+    r = worker.run_once(sleep=lambda s: pytest.fail("must not wait: a bad CSV is not retried"))
+    assert r["status"] == "failed"
+    assert calls == []

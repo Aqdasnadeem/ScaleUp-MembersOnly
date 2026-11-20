@@ -28,3 +28,15 @@ WORKER_MAX_ATTEMPTS = 3              # P2-51: a job is tried at most 3 times, an
 WORKER_RETRY_WAIT_SECONDS = 2        # waits 2 s, then 4 s between attempts
 WORKER_STUCK_MINUTES = 15            # P2-51: a job 'processing' longer than this belongs to a crashed worker and goes back to pending
 WORKER_POLL_SECONDS = 2              # how often the worker looks for a pending job when there is none
+
+# P2-28: PROPOSED default, pending advisor confirmation (sir, 18 Nov). Overridden by the
+# EXPENSE_RUPEE_THRESHOLD environment variable when set.
+EXPENSE_MIN_RUPEE_INCREASE_DEFAULT = 1000
+
+# Plan limits (super admin ticket's Feature 2). One dict, no DB table: a business's limits come
+# only from its effective plan ('free' or 'pro'; see app/billing.py:effective_plan), looked up here.
+# questions_per_day is for the /agent/ask ticket, which does not exist yet - kept here for later, unused now.
+PLAN_LIMITS = {
+    "free": {"uploads_per_month": 5, "max_rows_per_file": 10_000, "questions_per_day": 20},
+    "pro": {"uploads_per_month": 100, "max_rows_per_file": 200_000, "questions_per_day": 500},
+}
